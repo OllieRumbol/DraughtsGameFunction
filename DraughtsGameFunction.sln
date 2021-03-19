@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30804.86
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DraughtsGameFunction", "DraughtsGameFunction\DraughtsGameFunction.csproj", "{6DB05D4F-D74D-474D-9FDF-B1EEF3EF8558}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6DB05D4F-D74D-474D-9FDF-B1EEF3EF8558}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6DB05D4F-D74D-474D-9FDF-B1EEF3EF8558}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6DB05D4F-D74D-474D-9FDF-B1EEF3EF8558}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6DB05D4F-D74D-474D-9FDF-B1EEF3EF8558}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {69702E91-3683-4717-8D94-F77B9981D4F2}
+	EndGlobalSection
+EndGlobal
