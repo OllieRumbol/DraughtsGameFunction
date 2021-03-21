@@ -17,7 +17,7 @@ namespace DraughtsGameFunction
     public static class AutomatedPlayer
     {
         [FunctionName("GetNextMove")]
-        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req, ILogger log)
+        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req, ILogger log)
         {
             try
             {
