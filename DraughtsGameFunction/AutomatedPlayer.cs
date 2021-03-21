@@ -7,27 +7,73 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using DraughtsGameAPIModels;
+using DraughtsGameAPIService.Instance;
+using DraughtsGameAPIService.Interface;
 
 namespace DraughtsGameFunction
 {
     public static class AutomatedPlayer
     {
         [FunctionName("GetNextMove")]
-        public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
-            ILogger log)
+        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req, ILogger log)
         {
-            log.LogInformation("C# HTTP trigger function processed a request.");
+            try
+            {
+                string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+                GetNextMove getNextMove = JObject.Parse(requestBody).ToObject<GetNextMove>();
 
-            string name = req.Query["name"];
+                int version = getNextMove.Version;
+                IAutomatedPlayerService service;
 
-            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            dynamic data = JsonConvert.DeserializeObject(requestBody);
-            name = name ?? data?.name;
+                switch (version)
+                {
+                    case 1:
+                        service = new AutomatedPlayerServiceV1();
+                        break;
+                    case 2:
+                        service = new AutomatedPlayerServiceV2();
+                        break;
+                    case 3:
+                        service = new AutomatedPlayerServiceV3();
+                        break;
+                    default:
+                        service = null;
+                        break;
+                }
 
-            return name != null
-                ? (ActionResult)new OkObjectResult($"Hello, {name}")
-                : new BadRequestObjectResult("Please pass a name on the query string or in the request body");
+                if (service == null)
+                {
+                    return new BadRequestObjectResult(
+                        new Response
+                        {
+                            Successful = false,
+                            ErrorMessage = "No version in body of request"
+                        }
+                    );
+                }
+
+                NextMove nextmove = service.GetNextMoveForAutomatedPlayer(getNextMove);
+
+                return new OkObjectResult(
+                    new Response
+                    {
+                        Successful = true,
+                        NextMove = nextmove
+                    }
+                );
+            }
+            catch(Exception ex)
+            {
+                return new BadRequestObjectResult(
+                    new Response
+                    {
+                        Successful = false,
+                        ErrorMessage = ex.Message
+                    }
+                );
+            }
         }
     }
 }
