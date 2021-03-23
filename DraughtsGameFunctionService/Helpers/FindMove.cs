@@ -26,7 +26,8 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentHeight = i,
                                 CurrentWidth = j,
                                 NextHeight = i - 1,
-                                NextWidth = j - 1
+                                NextWidth = j - 1,
+                                Takes = new List<Take>()
                             });
                         }
                         if (CheckMove.CheckMoveUpRight(board, i, j))
@@ -36,7 +37,8 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentHeight = i,
                                 CurrentWidth = j,
                                 NextHeight = i - 1,
-                                NextWidth = j + 1
+                                NextWidth = j + 1,
+                                Takes = new List<Take>()
                             });
                         }
 
@@ -60,7 +62,8 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentHeight = i,
                                 CurrentWidth = j,
                                 NextHeight = i + 1,
-                                NextWidth = j - 1
+                                NextWidth = j - 1,
+                                Takes = new List<Take>()
                             });
                         }
                         if (CheckMove.CheckMoveDownRight(board, i, j))
@@ -70,7 +73,8 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentHeight = i,
                                 CurrentWidth = j,
                                 NextHeight = i + 1,
-                                NextWidth = j + 1
+                                NextWidth = j + 1,
+                                Takes = new List<Take>()
                             });
                         }
 
@@ -94,7 +98,8 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentHeight = i,
                                 CurrentWidth = j,
                                 NextHeight = i - 1,
-                                NextWidth = j - 1
+                                NextWidth = j - 1,
+                                Takes = new List<Take>()
                             });
                         }
                         if (CheckMove.CheckMoveUpRight(board, i, j))
@@ -104,7 +109,8 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentHeight = i,
                                 CurrentWidth = j,
                                 NextHeight = i - 1,
-                                NextWidth = j + 1
+                                NextWidth = j + 1,
+                                Takes = new List<Take>()
                             });
                         }
                         if (CheckMove.CheckMoveDownLeft(board, i, j))
@@ -114,7 +120,8 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentHeight = i,
                                 CurrentWidth = j,
                                 NextHeight = i + 1,
-                                NextWidth = j - 1
+                                NextWidth = j - 1,
+                                Takes = new List<Take>()
                             });
                         }
                         if (CheckMove.CheckMoveDownRight(board, i, j))
@@ -124,7 +131,8 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentHeight = i,
                                 CurrentWidth = j,
                                 NextHeight = i + 1,
-                                NextWidth = j + 1
+                                NextWidth = j + 1,
+                                Takes = new List<Take>()
                             });
                         }
 
@@ -165,7 +173,8 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i - 1,
                                 NextWidth = j - 1,
-                                Piece = 1
+                                Takes = new List<Take>(),
+                                Piece = 1,
                             });
                         }
                         if (CheckMove.CheckMoveUpRight(board, i, j))
@@ -176,6 +185,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i - 1,
                                 NextWidth = j + 1,
+                                Takes = new List<Take>(),
                                 Piece = 1
                             });
                         }
@@ -202,6 +212,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i + 1,
                                 NextWidth = j - 1,
+                                Takes = new List<Take>(),
                                 Piece = 2
                             });
                         }
@@ -213,6 +224,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i + 1,
                                 NextWidth = j + 1,
+                                Takes = new List<Take>(),
                                 Piece = 2
                             });
                         }
@@ -240,6 +252,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i - 1,
                                 NextWidth = j - 1,
+                                Takes = new List<Take>(),
                                 Piece = piece == 3 ? 1 : 2
                             });
                         }
@@ -251,6 +264,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i - 1,
                                 NextWidth = j + 1,
+                                Takes = new List<Take>(),
                                 Piece = piece == 3 ? 1 : 2
                             });
                         }
@@ -262,6 +276,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i + 1,
                                 NextWidth = j - 1,
+                                Takes = new List<Take>(),
                                 Piece = piece == 3 ? 1 : 2
                             });
                         }
@@ -273,6 +288,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i + 1,
                                 NextWidth = j + 1,
+                                Takes = new List<Take>(),
                                 Piece = piece == 3 ? 1 : 2
                             });
                         }

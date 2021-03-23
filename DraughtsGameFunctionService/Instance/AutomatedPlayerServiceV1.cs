@@ -14,7 +14,7 @@ namespace DraughtsGameAPIService.Interface
         {
             List<NextMove> results = FindMove.FindAvailableMoves(getNextMove.Board, getNextMove.Player);
 
-            List<NextMove> takeMoves = results.Where(m => m.Takes != null).ToList();
+            List<NextMove> takeMoves = results.Where(m => m.Takes.Count > 0).ToList();
 
             Random random = new Random();
             if (takeMoves.Count > 0)
@@ -33,6 +33,7 @@ namespace DraughtsGameAPIService.Interface
                     CurrentWidth = -1,
                     NextHeight = -1,
                     NextWidth = -1,
+                    Takes = new List<Take>()
                 };
             }
         }

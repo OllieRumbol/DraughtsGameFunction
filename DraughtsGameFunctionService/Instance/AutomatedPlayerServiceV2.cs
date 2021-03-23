@@ -91,7 +91,7 @@ namespace DraughtsGameAPIService.Interface
                 int[,] moveBoard = (int[,])board.Clone();
 
                 //Remove taken pieces form the board
-                if (move.Takes != null)
+                if (move.Takes.Count > 0)
                 {
                     foreach (Take take in move.Takes)
                     {
