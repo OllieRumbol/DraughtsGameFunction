@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DraughtsGameAPIService.Helpers
+namespace DraughtsGameFunctionModels.Service
 {
     public class TreeTake
     {

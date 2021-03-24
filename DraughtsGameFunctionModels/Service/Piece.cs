@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DraughtsGameAPIModels
+namespace DraughtsGameFunctionModels.Service
 {
-    public class Take
+    public class Piece
     {
         public int Height { get; set; }
 

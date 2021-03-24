@@ -4,14 +4,10 @@ using System.Text;
 
 namespace DraughtsGameFunctionModels.Controller
 {
-    public class GetNextMove
+    public class GetPlayerTips
     {
-        public int Version { get; set; }
-
         public int[,] Board { get; set; }
 
-        public int Depth { get; set; }
-
-        public int Player { get; set; }
+        public int TipFor { get; set; }
     }
 }

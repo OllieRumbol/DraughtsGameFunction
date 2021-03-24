@@ -1,8 +1,9 @@
-﻿using System;
+﻿using DraughtsGameFunctionModels.Service;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace DraughtsGameAPIService.Helpers
+namespace DraughtsGameFunctionService.Helpers
 {
     public class KingTree
     {

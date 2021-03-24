@@ -1,13 +1,12 @@
-﻿using DraughtsGameAPIModels;
-using DraughtsGameAPIModels.Service;
-using DraughtsGameAPIService.Helpers;
-using DraughtsGameAPIService.Instance;
+﻿using DraughtsGameFunctionModels.Controller;
+using DraughtsGameFunctionModels.Service;
+using DraughtsGameFunctionService.Helpers;
+using DraughtsGameFunctionService.Interface;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
-namespace DraughtsGameAPIService.Interface
+namespace DraughtsGameFunctionService.Intstance
 {
     public class AutomatedPlayerServiceV3 : IAutomatedPlayerService
     {
@@ -36,7 +35,7 @@ namespace DraughtsGameAPIService.Interface
             int player1Counter = 0;
             int player2Counter = 0;
 
-            List<Take> takenPieces = getPiecesTaken(moves);
+            List<Piece> takenPieces = getPiecesTaken(moves);
 
             const int numberOfRows = 7;
             const int kingBonusPoints = 2;
@@ -96,9 +95,9 @@ namespace DraughtsGameAPIService.Interface
             return player2Counter - player1Counter;
         }
 
-        private List<Take> getPiecesTaken(List<NextMove> moves)
+        private List<Piece> getPiecesTaken(List<NextMove> moves)
         {
-            List<Take> result = new List<Take>();
+            List<Piece> result = new List<Piece>();
 
             foreach(NextMove move in moves)
             {
@@ -111,9 +110,9 @@ namespace DraughtsGameAPIService.Interface
             return result;
         }
 
-        private bool canPieceBeTaken(List<Take> takes, int height, int width)
+        private bool canPieceBeTaken(List<Piece> takes, int height, int width)
         {
-            return takes.Any(t => t.Height == height && t.Width == width);
+            return takes.Count(t => t.Height == height && t.Width == width) > 0;
         }
 
         public MinimaxOutcome minimax(int[,] board, int depth, bool minOrMax, List<NextMove> moves)
@@ -188,7 +187,7 @@ namespace DraughtsGameAPIService.Interface
                 //Remove taken pieces form the board
                 if (move.Takes.Count > 0)
                 {
-                    foreach (Take take in move.Takes)
+                    foreach (Piece take in move.Takes)
                     {
                         moveBoard[take.Height, take.Width] = 5;
                     }

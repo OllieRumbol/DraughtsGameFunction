@@ -6,8 +6,8 @@ using System.Text;
 
 namespace DraughtsGameFunctionService.Interface
 {
-    public interface IAutomatedPlayerService
+    public interface IPlayerTipsService
     {
-        NextMove GetNextMoveForAutomatedPlayer(GetNextMove getNextMove);
+        List<Piece> GetPotentialMoves(GetPlayerTips getPlayerTips);
     }
 }

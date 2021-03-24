@@ -6,11 +6,11 @@ using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using DraughtsGameAPIModels;
-using DraughtsGameAPIService.Instance;
-using DraughtsGameAPIService.Interface;
+using DraughtsGameFunctionModels.Controller;
+using DraughtsGameFunctionModels.Service;
+using DraughtsGameFunctionService.Interface;
+using DraughtsGameFunctionService.Intstance;
 
 namespace DraughtsGameFunction
 {
@@ -46,7 +46,7 @@ namespace DraughtsGameFunction
                 if (service == null)
                 {
                     return new BadRequestObjectResult(
-                        new Response
+                        new AutomatedPlayerResponse
                         {
                             Successful = false,
                             ErrorMessage = "No version in body of request"
@@ -57,17 +57,17 @@ namespace DraughtsGameFunction
                 NextMove nextmove = service.GetNextMoveForAutomatedPlayer(getNextMove);
 
                 return new OkObjectResult(
-                    new Response
+                    new AutomatedPlayerResponse
                     {
                         Successful = true,
                         NextMove = nextmove
                     }
                 );
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 return new BadRequestObjectResult(
-                    new Response
+                    new AutomatedPlayerResponse
                     {
                         Successful = false,
                         ErrorMessage = ex.Message
