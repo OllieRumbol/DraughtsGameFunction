@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DraughtsGameAPIModels
+namespace DraughtsGameFunctionModels.Controller
 {
     public class GetNextMove
     {

@@ -2,13 +2,11 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DraughtsGameAPIModels
+namespace DraughtsGameFunctionModels.Controller
 {
-    public class Response 
+    public class Response
     {
         public bool Successful { get; set; }
-
-        public NextMove NextMove { get; set; }
 
         public string ErrorMessage { get; set; }
     }

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DraughtsGameAPIModels.Service
+namespace DraughtsGameFunctionModels.Service
 {
     public class PotentialNextMove
     {
@@ -17,7 +17,7 @@ namespace DraughtsGameAPIModels.Service
 
         public int NextWidth { get; set; }
 
-        public List<Take> Takes { get; set; }
+        public List<Piece> Takes { get; set; }
 
         public List<NextMove> Moves { get; set; }
     }
