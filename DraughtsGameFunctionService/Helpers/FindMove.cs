@@ -1,10 +1,10 @@
-﻿using DraughtsGameAPIModels;
+﻿using DraughtsGameFunctionModels.Service;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace DraughtsGameAPIService.Helpers
+namespace DraughtsGameFunctionService.Helpers
 {
     public class FindMove
     {
@@ -27,7 +27,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i - 1,
                                 NextWidth = j - 1,
-                                Takes = new List<Take>()
+                                Takes = new List<Piece>()
                             });
                         }
                         if (CheckMove.CheckMoveUpRight(board, i, j))
@@ -38,7 +38,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i - 1,
                                 NextWidth = j + 1,
-                                Takes = new List<Take>()
+                                Takes = new List<Piece>()
                             });
                         }
 
@@ -63,7 +63,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i + 1,
                                 NextWidth = j - 1,
-                                Takes = new List<Take>()
+                                Takes = new List<Piece>()
                             });
                         }
                         if (CheckMove.CheckMoveDownRight(board, i, j))
@@ -74,7 +74,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i + 1,
                                 NextWidth = j + 1,
-                                Takes = new List<Take>()
+                                Takes = new List<Piece>()
                             });
                         }
 
@@ -99,7 +99,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i - 1,
                                 NextWidth = j - 1,
-                                Takes = new List<Take>()
+                                Takes = new List<Piece>()
                             });
                         }
                         if (CheckMove.CheckMoveUpRight(board, i, j))
@@ -110,7 +110,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i - 1,
                                 NextWidth = j + 1,
-                                Takes = new List<Take>()
+                                Takes = new List<Piece>()
                             });
                         }
                         if (CheckMove.CheckMoveDownLeft(board, i, j))
@@ -121,7 +121,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i + 1,
                                 NextWidth = j - 1,
-                                Takes = new List<Take>()
+                                Takes = new List<Piece>()
                             });
                         }
                         if (CheckMove.CheckMoveDownRight(board, i, j))
@@ -132,7 +132,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i + 1,
                                 NextWidth = j + 1,
-                                Takes = new List<Take>()
+                                Takes = new List<Piece>()
                             });
                         }
 
@@ -173,7 +173,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i - 1,
                                 NextWidth = j - 1,
-                                Takes = new List<Take>(),
+                                Takes = new List<Piece>(),
                                 Piece = 1,
                             });
                         }
@@ -185,7 +185,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i - 1,
                                 NextWidth = j + 1,
-                                Takes = new List<Take>(),
+                                Takes = new List<Piece>(),
                                 Piece = 1
                             });
                         }
@@ -212,7 +212,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i + 1,
                                 NextWidth = j - 1,
-                                Takes = new List<Take>(),
+                                Takes = new List<Piece>(),
                                 Piece = 2
                             });
                         }
@@ -224,7 +224,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i + 1,
                                 NextWidth = j + 1,
-                                Takes = new List<Take>(),
+                                Takes = new List<Piece>(),
                                 Piece = 2
                             });
                         }
@@ -252,7 +252,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i - 1,
                                 NextWidth = j - 1,
-                                Takes = new List<Take>(),
+                                Takes = new List<Piece>(),
                                 Piece = piece == 3 ? 1 : 2
                             });
                         }
@@ -264,7 +264,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i - 1,
                                 NextWidth = j + 1,
-                                Takes = new List<Take>(),
+                                Takes = new List<Piece>(),
                                 Piece = piece == 3 ? 1 : 2
                             });
                         }
@@ -276,7 +276,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i + 1,
                                 NextWidth = j - 1,
-                                Takes = new List<Take>(),
+                                Takes = new List<Piece>(),
                                 Piece = piece == 3 ? 1 : 2
                             });
                         }
@@ -288,7 +288,7 @@ namespace DraughtsGameAPIService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i + 1,
                                 NextWidth = j + 1,
-                                Takes = new List<Take>(),
+                                Takes = new List<Piece>(),
                                 Piece = piece == 3 ? 1 : 2
                             });
                         }
@@ -328,11 +328,11 @@ namespace DraughtsGameAPIService.Helpers
         {
             List<NextMove> results = new List<NextMove>();
 
-            List<Take> takes = new List<Take>();
+            List<Piece> takes = new List<Piece>();
 
             foreach(TreeTake take in takeMoves.Skip(1))
             {
-                takes.Add(new Take
+                takes.Add(new Piece
                 {
                     Height = take.TakeHeight,
                     Width = take.TakeWidth
