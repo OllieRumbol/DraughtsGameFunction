@@ -1,13 +1,11 @@
-﻿using DraughtsGameAPIModels;
-using DraughtsGameAPIModels.Service;
-using DraughtsGameAPIService.Helpers;
-using DraughtsGameAPIService.Instance;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Linq;
+using DraughtsGameFunctionService.Interface;
+using DraughtsGameFunctionModels.Controller;
+using DraughtsGameFunctionModels.Service;
+using DraughtsGameFunctionService.Helpers;
 
-namespace DraughtsGameAPIService.Interface
+namespace DraughtsGameFunctionService.Intstance
 {
     public class AutomatedPlayerServiceV2 : IAutomatedPlayerService
     {
@@ -25,7 +23,7 @@ namespace DraughtsGameAPIService.Interface
             };
         }
 
-        public MinimaxOutcome minimax (int[,] board, int depth, bool minOrMax)
+        public MinimaxOutcome minimax(int[,] board, int depth, bool minOrMax)
         {
             if (depth == 0)
             {
@@ -93,7 +91,7 @@ namespace DraughtsGameAPIService.Interface
                 //Remove taken pieces form the board
                 if (move.Takes.Count > 0)
                 {
-                    foreach (Take take in move.Takes)
+                    foreach (Piece take in move.Takes)
                     {
                         moveBoard[take.Height, take.Width] = 5;
                     }
@@ -150,11 +148,11 @@ namespace DraughtsGameAPIService.Interface
                     }
                     else if (board[i, j] == 3)
                     {
-                        player1Counter = player1Counter + 2;
+                        player1Counter += 2;
                     }
                     else if (board[i, j] == 4)
                     {
-                        player2Counter = player2Counter + 2;
+                        player2Counter += 2;
                     }
                 }
             }

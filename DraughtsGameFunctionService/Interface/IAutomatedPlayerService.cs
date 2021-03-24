@@ -1,9 +1,10 @@
-﻿using DraughtsGameAPIModels;
+﻿using DraughtsGameFunctionModels.Controller;
+using DraughtsGameFunctionModels.Service;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace DraughtsGameAPIService.Instance
+namespace DraughtsGameFunctionService.Interface
 {
     public interface IAutomatedPlayerService
     {

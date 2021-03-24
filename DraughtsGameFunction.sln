@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30804.86
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DraughtsGameFunction", "DraughtsGameFunction\DraughtsGameFunction.csproj", "{6DB05D4F-D74D-474D-9FDF-B1EEF3EF8558}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DraughtsGameFunction", "DraughtsGameFunction\DraughtsGameFunction.csproj", "{6DB05D4F-D74D-474D-9FDF-B1EEF3EF8558}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DraughtsGameFunctionModels", "DraughtsGameFunctionModels\DraughtsGameFunctionModels.csproj", "{97554B3E-35B6-4A17-912C-28A4FCBD5787}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DraughtsGameFunctionModels", "DraughtsGameFunctionModels\DraughtsGameFunctionModels.csproj", "{97554B3E-35B6-4A17-912C-28A4FCBD5787}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DraughtsGameFunctionService", "DraughtsGameFunctionService\DraughtsGameFunctionService.csproj", "{47B9F41D-AD10-44F6-B3D8-AD958EF59269}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DraughtsGameFunctionService", "DraughtsGameFunctionService\DraughtsGameFunctionService.csproj", "{47B9F41D-AD10-44F6-B3D8-AD958EF59269}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

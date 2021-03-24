@@ -1,12 +1,13 @@
-﻿using DraughtsGameAPIModels;
-using DraughtsGameAPIService.Helpers;
-using DraughtsGameAPIService.Instance;
+﻿using DraughtsGameFunctionModels.Controller;
+using DraughtsGameFunctionModels.Service;
+using DraughtsGameFunctionService.Helpers;
+using DraughtsGameFunctionService.Interface;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace DraughtsGameAPIService.Interface
+namespace DraughtsGameFunctionService.Intstance
 {
     public class AutomatedPlayerServiceV1 : IAutomatedPlayerService
     {
@@ -27,14 +28,7 @@ namespace DraughtsGameAPIService.Interface
             }
             else
             {
-                return new NextMove
-                {
-                    CurrentHeight = -1,
-                    CurrentWidth = -1,
-                    NextHeight = -1,
-                    NextWidth = -1,
-                    Takes = new List<Take>()
-                };
+                throw new Exception($"Board contains no moves for player {getNextMove.Player}");
             }
         }
     }
