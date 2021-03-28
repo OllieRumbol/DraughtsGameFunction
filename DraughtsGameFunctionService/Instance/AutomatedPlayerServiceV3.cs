@@ -12,7 +12,7 @@ namespace DraughtsGameFunctionService.Intstance
     {
         public NextMove GetNextMoveForAutomatedPlayer(GetNextMove getNextMove)
         {
-            MinimaxOutcome result = minimax(getNextMove.Board, getNextMove.Depth, true, null);
+            MinimaxOutcome result = minimax(getNextMove.Board, getNextMove.Depth, true);
 
             return new NextMove
             {
@@ -24,70 +24,35 @@ namespace DraughtsGameFunctionService.Intstance
             };
         }
 
-        private int evaluate(int[,] board, List<NextMove> moves)
+        private int evaluate(int[,] board)
         {
-            //TODO: the list of moves is calculated before a piece is moved there it lacks the full moves information however this is due to efficiency problems  
-            //Depth 4: Before: 315ms, After: 65ms
-            //Depth 6: Before: 21.8s After: 3.36s
-            //Depth 8: Before: 40m 8s, After: 5m 34s
-            //Depth 10: 
+            const int numberOfRows = 7;
+            const int kingBonusPoints = 3;
 
             int player1Counter = 0;
             int player2Counter = 0;
-
-            List<Piece> takenPieces = getPiecesTaken(moves);
-
-            const int numberOfRows = 7;
-            const int kingBonusPoints = 2;
 
             for (int i = 0; i < board.GetLength(0); i++)
             {
                 for (int j = 1 - (i % 2); j < board.GetLength(1); j++)
                 {
                     int piece = board[i, j];
-                    if(piece == 1)
+                    if (piece == 1)
                     {
-                        if (canPieceBeTaken(takenPieces, i, j))
-                        {
-                            player1Counter = player1Counter + 4 + (numberOfRows - i);
-                        }
-                        else
-                        {
-                            player1Counter = player1Counter + 6 + (numberOfRows - i);
-                        }
+                        player1Counter += 5 + (numberOfRows - i);
                     }
                     else if (piece == 2)
                     {
-                        if (canPieceBeTaken(takenPieces, i, j))
-                        {
-                            player2Counter = player2Counter + 4 + i;
-                        }
-                        else
-                        {
-                            player2Counter = player2Counter + 6 + i;
-                        }
+                        player2Counter += 5 + i;
+
                     }
                     else if (piece == 3)
                     {
-                        if (canPieceBeTaken(takenPieces, i, j))
-                        {
-                            player1Counter = player1Counter + 2 + numberOfRows + kingBonusPoints;
-                        }
-                        else
-                        {
-                            player1Counter = player1Counter + 8 + numberOfRows + kingBonusPoints;
-                        }
+                        player1Counter += 5 + numberOfRows + kingBonusPoints;
                     }
                     else if (piece == 4)
                     {
-                        if (canPieceBeTaken(takenPieces, i, j))
-                        {
-                            player2Counter = player2Counter + 2 + numberOfRows + kingBonusPoints;
-                        }
-                        else
-                        {
-                            player2Counter = player2Counter + 8 + numberOfRows + kingBonusPoints;
-                        }
+                        player2Counter += 5 + numberOfRows + kingBonusPoints;
                     }
                 }
             }
@@ -95,33 +60,13 @@ namespace DraughtsGameFunctionService.Intstance
             return player2Counter - player1Counter;
         }
 
-        private List<Piece> getPiecesTaken(List<NextMove> moves)
-        {
-            List<Piece> result = new List<Piece>();
-
-            foreach(NextMove move in moves)
-            {
-                if (move.Takes != null)
-                {
-                    result.AddRange(move.Takes);
-                }
-            }
-
-            return result;
-        }
-
-        private bool canPieceBeTaken(List<Piece> takes, int height, int width)
-        {
-            return takes.Count(t => t.Height == height && t.Width == width) > 0;
-        }
-
-        public MinimaxOutcome minimax(int[,] board, int depth, bool minOrMax, List<NextMove> moves)
+        public MinimaxOutcome minimax(int[,] board, int depth, bool minOrMax)
         {
             if (depth == 0)
             {
                 return new MinimaxOutcome
                 {
-                    Evaluation = evaluate(board, moves)
+                    Evaluation = evaluate(board)
                 };
             }
 
@@ -132,7 +77,7 @@ namespace DraughtsGameFunctionService.Intstance
                 List<PotentialNextMove> player2MovesBoards = GetAvailableBoards(board, 2);
                 foreach (PotentialNextMove player2MovesBoard in player2MovesBoards)
                 {
-                    MinimaxOutcome evaluation = minimax(player2MovesBoard.Board, depth - 1, false, player2MovesBoard.Moves);
+                    MinimaxOutcome evaluation = minimax(player2MovesBoard.Board, depth - 1, false);
                     maxEval = Math.Max(maxEval, evaluation.Evaluation);
                     if (maxEval == evaluation.Evaluation)
                     {
@@ -153,7 +98,7 @@ namespace DraughtsGameFunctionService.Intstance
                 List<PotentialNextMove> player1MovesBoards = GetAvailableBoards(board, 1);
                 foreach (PotentialNextMove player1MovesBoard in player1MovesBoards)
                 {
-                    MinimaxOutcome evaluation = minimax(player1MovesBoard.Board, depth - 1, true, player1MovesBoard.Moves);
+                    MinimaxOutcome evaluation = minimax(player1MovesBoard.Board, depth - 1, true);
                     minEval = Math.Min(minEval, evaluation.Evaluation);
                     if (minEval == evaluation.Evaluation)
                     {
@@ -172,14 +117,9 @@ namespace DraughtsGameFunctionService.Intstance
         private List<PotentialNextMove> GetAvailableBoards(int[,] board, int player)
         {
             List<PotentialNextMove> results = new List<PotentialNextMove>();
+            List<NextMove> moves = FindMove.FindAvailableMoves(board, player);
 
-            //Get all possible moves for a board, this is used it 2 ways 
-            //1. This method will use the information to create a board for every possible move
-            //2. This list of possible moves is used by the evaluation method to not redo work is massively improve efficiency
-
-            List<NextMove> moves = FindMove.FindAvailableMoves(board);
-
-            foreach (NextMove move in moves.Where(m =>m.Piece == player))
+            foreach (NextMove move in moves)
             {
                 //Copy board
                 int[,] moveBoard = (int[,])board.Clone();
@@ -218,8 +158,6 @@ namespace DraughtsGameFunctionService.Intstance
                     CurrentWidth = move.CurrentWidth,
                     NextHeight = move.NextHeight,
                     NextWidth = move.NextWidth,
-                    Takes = move.Takes,
-                    Moves = moves
                 });
             }
 
