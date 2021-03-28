@@ -44,7 +44,6 @@ namespace DraughtsGameFunctionService.Intstance
                     else if (piece == 2)
                     {
                         player2Counter += 5 + i;
-
                     }
                     else if (piece == 3)
                     {
@@ -158,6 +157,7 @@ namespace DraughtsGameFunctionService.Intstance
                     CurrentWidth = move.CurrentWidth,
                     NextHeight = move.NextHeight,
                     NextWidth = move.NextWidth,
+                    Takes = move.Takes
                 });
             }
 
