@@ -15,7 +15,5 @@ namespace DraughtsGameFunctionModels.Service
         public int NextWidth { get; set; }
 
         public List<Piece> Takes { get; set; }
-
-        public int Piece { get; set; }
     }
 }
