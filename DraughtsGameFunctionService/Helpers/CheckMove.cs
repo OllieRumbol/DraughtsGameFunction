@@ -76,8 +76,8 @@ namespace DraughtsGameFunctionService.Helpers
                         {
                             TakeHeight = i + 1,
                             TakeWidth = j - 1,
-                            NextHeight = i + 2,
-                            NextWidth = j - 2
+                            CurrentHeight = i + 2,
+                            CurrentWidth = j - 2
                         });
                         CheckTakeDown(board, i + 2, j - 2, playerToTake, tree.Left);
                     }
@@ -96,8 +96,8 @@ namespace DraughtsGameFunctionService.Helpers
                         {
                             TakeHeight = i + 1,
                             TakeWidth = j + 1,
-                            NextHeight = i + 2,
-                            NextWidth = j + 2
+                            CurrentHeight = i + 2,
+                            CurrentWidth = j + 2
                         });
                         CheckTakeDown(board, i + 2, j + 2, playerToTake, tree.Right);
                     }
@@ -121,8 +121,8 @@ namespace DraughtsGameFunctionService.Helpers
                         {
                             TakeHeight = i - 1,
                             TakeWidth = j - 1,
-                            NextHeight = i - 2,
-                            NextWidth = j - 2
+                            CurrentHeight = i - 2,
+                            CurrentWidth = j - 2
                         });
                         CheckTakeUp(board, i - 2, j - 2, playerToTake, tree.Left);
                     }
@@ -141,8 +141,8 @@ namespace DraughtsGameFunctionService.Helpers
                         {
                             TakeHeight = i - 1,
                             TakeWidth = j + 1,
-                            NextHeight = i - 2,
-                            NextWidth = j + 2
+                            CurrentHeight = i - 2,
+                            CurrentWidth = j + 2
                         });
                         CheckTakeUp(board, i - 2, j + 2, playerToTake, tree.Right);
                     }
@@ -168,8 +168,8 @@ namespace DraughtsGameFunctionService.Helpers
                             {
                                 TakeHeight = height + 1,
                                 TakeWidth = width - 1,
-                                NextHeight = height + 2,
-                                NextWidth = width - 2
+                                CurrentHeight = height + 2,
+                                CurrentWidth = width - 2
                             });
                             CheckKingTake(board, height, width, height + 2, width - 2, playerToTake, tree.DownLeft);
                         }
@@ -191,8 +191,8 @@ namespace DraughtsGameFunctionService.Helpers
                             {
                                 TakeHeight = height + 1,
                                 TakeWidth = width + 1,
-                                NextHeight = height + 2,
-                                NextWidth = width + 2
+                                CurrentHeight = height + 2,
+                                CurrentWidth = width + 2
                             });
                             CheckKingTake(board, height, width, height + 2, width + 2, playerToTake, tree.DownRight);
                         }
@@ -214,8 +214,8 @@ namespace DraughtsGameFunctionService.Helpers
                             {
                                 TakeHeight = height - 1,
                                 TakeWidth = width - 1,
-                                NextHeight = height - 2,
-                                NextWidth = width - 2
+                                CurrentHeight = height - 2,
+                                CurrentWidth = width - 2
                             });
                             CheckKingTake(board, height, width, height - 2, width - 2, playerToTake, tree.UpLeft);
                         }
@@ -237,8 +237,8 @@ namespace DraughtsGameFunctionService.Helpers
                             {
                                 TakeHeight = height - 1,
                                 TakeWidth = width + 1,
-                                NextHeight = height - 2,
-                                NextWidth = width + 2
+                                CurrentHeight = height - 2,
+                                CurrentWidth = width + 2
                             });
                             CheckKingTake(board, height, width, height - 2, width + 2, playerToTake, tree.UpRight);
                         }

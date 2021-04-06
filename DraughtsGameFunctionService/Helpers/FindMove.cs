@@ -8,6 +8,8 @@ namespace DraughtsGameFunctionService.Helpers
 {
     public class FindMove
     {
+        private static readonly List<Piece> EmptyList = new List<Piece>();
+
         public static List<NextMove> FindAvailableMoves(int[,] board, int player)
         {
             List<NextMove> results = new List<NextMove>();
@@ -17,9 +19,16 @@ namespace DraughtsGameFunctionService.Helpers
                 for (int j = 1 - (i % 2); j < board.GetLength(1); j += 2)
                 {
                     int piece = board[i, j];
-                    if (piece == 1 && player == 1)
+
+                    if(piece == 5)
                     {
-                        if (CheckMove.CheckMoveUpLeft(board, i, j))
+                        continue;
+                    }
+                    else if (piece == 1 && player == 1)
+                    {
+                        bool canMoveUpAndLeft = CheckMove.CheckMoveUpLeft(board, i, j);
+                        bool canMoveUpAndRight = CheckMove.CheckMoveUpRight(board, i, j);
+                        if (canMoveUpAndLeft)
                         {
                             results.Add(new NextMove
                             {
@@ -27,10 +36,10 @@ namespace DraughtsGameFunctionService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i - 1,
                                 NextWidth = j - 1,
-                                Takes = new List<Piece>()
+                                Takes = EmptyList
                             });
                         }
-                        if (CheckMove.CheckMoveUpRight(board, i, j))
+                        if (canMoveUpAndRight)
                         {
                             results.Add(new NextMove
                             {
@@ -38,24 +47,29 @@ namespace DraughtsGameFunctionService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i - 1,
                                 NextWidth = j + 1,
-                                Takes = new List<Piece>()
+                                Takes = EmptyList
                             });
                         }
-
-                        Tree resultTree = CheckMove.CheckTakeUp(board, i, j, new int[] { 2 }, new Tree(new TreeTake
+                        if (canMoveUpAndLeft == false || canMoveUpAndRight == false)
                         {
-                            CurrentHeight = i,
-                            CurrentWidth = j,
-                        }));
-                        if (resultTree.Left != null || resultTree.Right != null)
-                        {
-                            List<List<TreeTake>> treeArray = Tree.TreeToArray(resultTree);
-                            results.AddRange(ProcessTreeArray(treeArray));
+                            Tree resultTree = CheckMove.CheckTakeUp(board, i, j, new int[] { 2 }, new Tree(new TreeTake
+                            {
+                                CurrentHeight = i,
+                                CurrentWidth = j,
+                            }));
+                            if (resultTree.Left != null || resultTree.Right != null)
+                            {
+                                List<List<TreeTake>> treeArray = Tree.TreeToArray(resultTree);
+                                results.AddRange(ProcessTreeArray(treeArray));
+                            }
                         }
                     }
                     else if (piece == 2 && player == 2)
                     {
-                        if (CheckMove.CheckMoveDownLeft(board, i, j))
+                        bool canMoveDownAndLeft = CheckMove.CheckMoveDownLeft(board, i, j);
+                        bool canMoveDownAndRight = CheckMove.CheckMoveDownRight(board, i, j);
+
+                        if (canMoveDownAndLeft)
                         {
                             results.Add(new NextMove
                             {
@@ -63,10 +77,10 @@ namespace DraughtsGameFunctionService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i + 1,
                                 NextWidth = j - 1,
-                                Takes = new List<Piece>()
+                                Takes = EmptyList
                             });
                         }
-                        if (CheckMove.CheckMoveDownRight(board, i, j))
+                        if (canMoveDownAndRight)
                         {
                             results.Add(new NextMove
                             {
@@ -74,78 +88,87 @@ namespace DraughtsGameFunctionService.Helpers
                                 CurrentWidth = j,
                                 NextHeight = i + 1,
                                 NextWidth = j + 1,
-                                Takes = new List<Piece>()
+                                Takes = EmptyList
                             });
                         }
-
-                        Tree resultTree = CheckMove.CheckTakeDown(board, i, j, new int[] { 1 }, new Tree(new TreeTake
+                        if (canMoveDownAndLeft == false || canMoveDownAndRight == false)
                         {
-                            CurrentHeight = i,
-                            CurrentWidth = j,
-                        }));
-                        if (resultTree.Left != null || resultTree.Right != null)
-                        {
-                            List<List<TreeTake>> treeArray = Tree.TreeToArray(resultTree);
-                            results.AddRange(ProcessTreeArray(treeArray));
+                            Tree resultTree = CheckMove.CheckTakeDown(board, i, j, new int[] { 1 }, new Tree(new TreeTake
+                            {
+                                CurrentHeight = i,
+                                CurrentWidth = j,
+                            }));
+                            if (resultTree.Left != null || resultTree.Right != null)
+                            {
+                                List<List<TreeTake>> treeArray = Tree.TreeToArray(resultTree);
+                                results.AddRange(ProcessTreeArray(treeArray));
+                            }
                         }
                     }
                     else if ((piece == 3 && player == 1) || (piece == 4 && player == 2))
                     {
-                        if (CheckMove.CheckMoveUpLeft(board, i, j))
-                        {
-                            results.Add(new NextMove
-                            {
-                                CurrentHeight = i,
-                                CurrentWidth = j,
-                                NextHeight = i - 1,
-                                NextWidth = j - 1,
-                                Takes = new List<Piece>()
-                            });
-                        }
-                        if (CheckMove.CheckMoveUpRight(board, i, j))
-                        {
-                            results.Add(new NextMove
-                            {
-                                CurrentHeight = i,
-                                CurrentWidth = j,
-                                NextHeight = i - 1,
-                                NextWidth = j + 1,
-                                Takes = new List<Piece>()
-                            });
-                        }
-                        if (CheckMove.CheckMoveDownLeft(board, i, j))
-                        {
-                            results.Add(new NextMove
-                            {
-                                CurrentHeight = i,
-                                CurrentWidth = j,
-                                NextHeight = i + 1,
-                                NextWidth = j - 1,
-                                Takes = new List<Piece>()
-                            });
-                        }
-                        if (CheckMove.CheckMoveDownRight(board, i, j))
-                        {
-                            results.Add(new NextMove
-                            {
-                                CurrentHeight = i,
-                                CurrentWidth = j,
-                                NextHeight = i + 1,
-                                NextWidth = j + 1,
-                                Takes = new List<Piece>()
-                            });
-                        }
+                        bool canMoveUpAndLeft = CheckMove.CheckMoveUpLeft(board, i, j);
+                        bool canMoveUpAndRight = CheckMove.CheckMoveUpRight(board, i, j);
+                        bool canMoveDownAndLeft = CheckMove.CheckMoveDownLeft(board, i, j);
+                        bool canMoveDownAndRight = CheckMove.CheckMoveDownRight(board, i, j);
 
-                        int[] countersToTake = piece == 3 ? new int[] { 2, 4 } : new int[] { 1, 3 };
-                        KingTree resultTree = CheckMove.CheckKingTake(board, i, j, i, j, countersToTake, new KingTree(new TreeTake
+                        if (canMoveUpAndLeft)
                         {
-                            CurrentHeight = i,
-                            CurrentWidth = j,
-                        }));
-                        if (resultTree.DownLeft != null || resultTree.DownRight != null || resultTree.UpLeft != null || resultTree.UpRight != null)
+                            results.Add(new NextMove
+                            {
+                                CurrentHeight = i,
+                                CurrentWidth = j,
+                                NextHeight = i - 1,
+                                NextWidth = j - 1,
+                                Takes = EmptyList
+                            });
+                        }
+                        if (canMoveUpAndRight)
                         {
-                            List<List<TreeTake>> treeArray = KingTree.KingTreeToArray(resultTree);
-                            results.AddRange(ProcessTreeArray(treeArray));
+                            results.Add(new NextMove
+                            {
+                                CurrentHeight = i,
+                                CurrentWidth = j,
+                                NextHeight = i - 1,
+                                NextWidth = j + 1,
+                                Takes = EmptyList
+                            });
+                        }
+                        if (canMoveDownAndLeft)
+                        {
+                            results.Add(new NextMove
+                            {
+                                CurrentHeight = i,
+                                CurrentWidth = j,
+                                NextHeight = i + 1,
+                                NextWidth = j - 1,
+                                Takes = EmptyList
+                            });
+                        }
+                        if (canMoveDownAndRight)
+                        {
+                            results.Add(new NextMove
+                            {
+                                CurrentHeight = i,
+                                CurrentWidth = j,
+                                NextHeight = i + 1,
+                                NextWidth = j + 1,
+                                Takes = EmptyList
+                            });
+                        }
+                        if (canMoveUpAndLeft == false || canMoveUpAndRight == false || canMoveDownAndLeft == false || canMoveDownAndRight == false)
+                        {
+                            int[] countersToTake = piece == 3 ? new int[] { 2, 4 } : new int[] { 1, 3 };
+                            KingTree resultTree = CheckMove.CheckKingTake(board, i, j, i, j, countersToTake, new KingTree(new TreeTake
+                            {
+                                CurrentHeight = i,
+                                CurrentWidth = j,
+                            }));
+                            if (resultTree.DownLeft != null || resultTree.DownRight != null || resultTree.UpLeft != null || resultTree.UpRight != null)
+                            {
+                                List<List<TreeTake>> treeArray = KingTree.KingTreeToArray(resultTree);
+                                results.AddRange(ProcessTreeArray(treeArray));
+                            }
                         }
                     }
                 }
@@ -184,8 +207,8 @@ namespace DraughtsGameFunctionService.Helpers
                 {
                     CurrentHeight = takeMoves.First().CurrentHeight,
                     CurrentWidth = takeMoves.First().CurrentWidth,
-                    NextHeight = take.NextHeight,
-                    NextWidth = take.NextWidth,
+                    NextHeight = take.CurrentHeight,
+                    NextWidth = take.CurrentWidth,
                     Takes = takes,
                 });
             }
