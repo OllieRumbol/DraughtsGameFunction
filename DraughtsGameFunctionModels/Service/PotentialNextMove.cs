@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace DraughtsGameFunctionModels.Service
 {
     public class PotentialNextMove
     {
-
         public int[,] Board { get; set; }
 
         public int CurrentHeight { get; set; }

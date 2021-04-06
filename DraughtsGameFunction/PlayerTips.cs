@@ -23,10 +23,10 @@ namespace DraughtsGameFunction
             try
             {
                 string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-                GetPlayerTips getNextMove = JObject.Parse(requestBody).ToObject<GetPlayerTips>();
+                GetPlayerTips getPlayerTips = JObject.Parse(requestBody).ToObject<GetPlayerTips>();
 
                 IPlayerTipsService service = new PlayerTipsService();
-                List<Piece> potentialMoves = service.GetPotentialMoves(getNextMove);
+                List<Piece> potentialMoves = service.GetPotentialMoves(getPlayerTips);
 
                 return new OkObjectResult(
                     new PlayersTipsResponse
