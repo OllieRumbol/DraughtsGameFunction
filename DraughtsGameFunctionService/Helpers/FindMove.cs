@@ -209,7 +209,7 @@ namespace DraughtsGameFunctionService.Helpers
                     CurrentWidth = takeMoves.First().CurrentWidth,
                     NextHeight = take.CurrentHeight,
                     NextWidth = take.CurrentWidth,
-                    Takes = takes,
+                    Takes = new List<Piece>(takes)
                 });
             }
 
