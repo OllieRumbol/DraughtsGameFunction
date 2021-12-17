@@ -21,10 +21,10 @@ namespace DraughtsGameFunction
         {
             try
             {
-                string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+                String requestBody = await new StreamReader(req.Body).ReadToEndAsync();
                 GetNextMove getNextMove = JObject.Parse(requestBody).ToObject<GetNextMove>();
 
-                int version = getNextMove.Version;
+                Int64 version = getNextMove.Version;
                 IAutomatedPlayerService service;
 
                 switch (version)
@@ -55,7 +55,6 @@ namespace DraughtsGameFunction
                 }
 
                 NextMove nextmove = service.GetNextMoveForAutomatedPlayer(getNextMove);
-
                 return new OkObjectResult(
                     new AutomatedPlayerResponse
                     {

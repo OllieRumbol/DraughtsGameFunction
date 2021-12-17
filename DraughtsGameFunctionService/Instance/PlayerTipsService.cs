@@ -12,15 +12,16 @@ namespace DraughtsGameFunctionService.Instance
     {
         public List<Piece> GetPotentialMoves(GetPlayerTips getPlayerTips)
         {
-            List<Piece> potentialMoves =  FindMove.FindAvailableMoves(getPlayerTips.Board, getPlayerTips.TipFor).Select(m => 
-            {
-                return new Piece
+            List<Piece> potentialMoves = FindMove.FindAvailableMoves(getPlayerTips.Board, getPlayerTips.TipFor)
+                .Select(m =>
                 {
-                    Height = m.NextHeight,
-                    Width = m.NextWidth
-                };
-            })
-            .ToList();
+                    return new Piece
+                    {
+                        Height = m.NextHeight,
+                        Width = m.NextWidth
+                    };
+                })
+                .ToList();
 
             return potentialMoves.Distinct(new PieceComparer()).ToList();
         }

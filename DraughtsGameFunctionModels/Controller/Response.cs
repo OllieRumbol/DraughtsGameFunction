@@ -6,8 +6,8 @@ namespace DraughtsGameFunctionModels.Controller
 {
     public class Response
     {
-        public bool Successful { get; set; }
+        public Boolean Successful { get; set; }
 
-        public string ErrorMessage { get; set; }
+        public String ErrorMessage { get; set; }
     }
 }

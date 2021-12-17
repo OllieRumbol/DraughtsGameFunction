@@ -24,19 +24,19 @@ namespace DraughtsGameFunctionService.Intstance
             };
         }
 
-        private int evaluate(int[,] board)
+        private Int64 evaluate(Int64[,] board)
         {
-            const int numberOfRows = 7;
-            const int kingBonusPoints = 3;
+            const Int64 numberOfRows = 7;
+            const Int64 kingBonusPoints = 3;
 
-            int player1Counter = 0;
-            int player2Counter = 0;
+            Int64 player1Counter = 0;
+            Int64 player2Counter = 0;
 
             for (int i = 0; i < board.GetLength(0); i++)
             {
                 for (int j = 1 - (i % 2); j < board.GetLength(1); j++)
                 {
-                    int piece = board[i, j];
+                    Int64 piece = board[i, j];
                     if (piece == 1)
                     {
                         player1Counter += 5 + (numberOfRows - i);
@@ -59,7 +59,7 @@ namespace DraughtsGameFunctionService.Intstance
             return player2Counter - player1Counter;
         }
 
-        public MinimaxOutcome minimax(int[,] board, int depth, bool minOrMax)
+        public MinimaxOutcome minimax(Int64[,] board, Int64 depth, Boolean minOrMax)
         {
             if (depth == 0)
             {
@@ -71,7 +71,7 @@ namespace DraughtsGameFunctionService.Intstance
 
             if (minOrMax)
             {
-                int maxEval = -1000;
+                Int64 maxEval = -1000;
                 PotentialNextMove bestMove = null;
                 List<PotentialNextMove> player2MovesBoards = GetAvailableBoards(board, 2);
                 foreach (PotentialNextMove player2MovesBoard in player2MovesBoards)
@@ -92,7 +92,7 @@ namespace DraughtsGameFunctionService.Intstance
             }
             else
             {
-                int minEval = 1000;
+                Int64 minEval = 1000;
                 PotentialNextMove bestMove = null;
                 List<PotentialNextMove> player1MovesBoards = GetAvailableBoards(board, 1);
                 foreach (PotentialNextMove player1MovesBoard in player1MovesBoards)
@@ -113,7 +113,7 @@ namespace DraughtsGameFunctionService.Intstance
             }
         }
 
-        private List<PotentialNextMove> GetAvailableBoards(int[,] board, int player)
+        private List<PotentialNextMove> GetAvailableBoards(Int64[,] board, Int64 player)
         {
             List<PotentialNextMove> results = new List<PotentialNextMove>();
             List<NextMove> moves = FindMove.FindAvailableMoves(board, player);
@@ -121,7 +121,7 @@ namespace DraughtsGameFunctionService.Intstance
             foreach (NextMove move in moves)
             {
                 //Copy board
-                int[,] moveBoard = (int[,])board.Clone();
+                Int64[,] moveBoard = (Int64[,])board.Clone();
 
                 //Remove taken pieces form the board
                 if (move.Takes.Count > 0)
@@ -145,7 +145,7 @@ namespace DraughtsGameFunctionService.Intstance
                 }
                 else
                 {
-                    int tempValue = moveBoard[move.CurrentHeight, move.CurrentWidth];
+                    Int64 tempValue = moveBoard[move.CurrentHeight, move.CurrentWidth];
                     moveBoard[move.CurrentHeight, move.CurrentWidth] = 5;
                     moveBoard[move.NextHeight, move.NextWidth] = tempValue;
                 }

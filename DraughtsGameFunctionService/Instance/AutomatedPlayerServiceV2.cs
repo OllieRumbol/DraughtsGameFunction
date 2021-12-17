@@ -23,7 +23,7 @@ namespace DraughtsGameFunctionService.Intstance
             };
         }
 
-        public MinimaxOutcome minimax(int[,] board, int depth, bool minOrMax)
+        public MinimaxOutcome minimax(Int64[,] board, Int64 depth, Boolean minOrMax)
         {
             if (depth == 0)
             {
@@ -35,7 +35,7 @@ namespace DraughtsGameFunctionService.Intstance
 
             if (minOrMax)
             {
-                int maxEval = -1000;
+                Int64 maxEval = -1000;
                 PotentialNextMove bestMove = null;
                 List<PotentialNextMove> player2MovesBoards = GetAvailableBoards(board, 2);
                 foreach (PotentialNextMove player2MovesBoard in player2MovesBoards)
@@ -56,7 +56,7 @@ namespace DraughtsGameFunctionService.Intstance
             }
             else
             {
-                int minEval = 1000;
+                Int64 minEval = 1000;
                 PotentialNextMove bestMove = null;
                 List<PotentialNextMove> player1MovesBoards = GetAvailableBoards(board, 1);
                 foreach (PotentialNextMove player1MovesBoard in player1MovesBoards)
@@ -77,7 +77,7 @@ namespace DraughtsGameFunctionService.Intstance
             }
         }
 
-        private List<PotentialNextMove> GetAvailableBoards(int[,] board, int player)
+        private List<PotentialNextMove> GetAvailableBoards(Int64[,] board, Int64 player)
         {
             List<PotentialNextMove> results = new List<PotentialNextMove>();
 
@@ -86,7 +86,7 @@ namespace DraughtsGameFunctionService.Intstance
             foreach (NextMove move in moves)
             {
                 //Copy board
-                int[,] moveBoard = (int[,])board.Clone();
+                Int64[,] moveBoard = (Int64[,])board.Clone();
 
                 //Remove taken pieces form the board
                 if (move.Takes.Count > 0)
@@ -110,7 +110,7 @@ namespace DraughtsGameFunctionService.Intstance
                 }
                 else
                 {
-                    int tempValue = moveBoard[move.CurrentHeight, move.CurrentWidth];
+                    Int64 tempValue = moveBoard[move.CurrentHeight, move.CurrentWidth];
                     moveBoard[move.CurrentHeight, move.CurrentWidth] = 5;
                     moveBoard[move.NextHeight, move.NextWidth] = tempValue;
                 }
@@ -129,7 +129,7 @@ namespace DraughtsGameFunctionService.Intstance
             return results;
         }
 
-        private int evaluate(int[,] board)
+        private Int64 evaluate(Int64[,] board)
         {
             int player1Counter = 0;
             int player2Counter = 0;

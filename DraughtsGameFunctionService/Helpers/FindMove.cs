@@ -10,15 +10,15 @@ namespace DraughtsGameFunctionService.Helpers
     {
         private static readonly List<Piece> EmptyList = new List<Piece>();
 
-        public static List<NextMove> FindAvailableMoves(int[,] board, int player)
+        public static List<NextMove> FindAvailableMoves(Int64[,] board, Int64 player)
         {
             List<NextMove> results = new List<NextMove>();
-            for (int i = 0; i < board.GetLength(0); i++)
+            for (Int64 row = 0; row < board.GetLength(0); row++)
             {
-                // Skip over pieces that cant be player
-                for (int j = 1 - (i % 2); j < board.GetLength(1); j += 2)
+                // Skip over pieces that cant be played
+                for (Int64 column = 1 - (row % 2); column < board.GetLength(1); column += 2)
                 {
-                    int piece = board[i, j];
+                    Int64 piece = board[row, column];
 
                     if(piece == 5)
                     {
@@ -26,16 +26,16 @@ namespace DraughtsGameFunctionService.Helpers
                     }
                     else if (piece == 1 && player == 1)
                     {
-                        bool canMoveUpAndLeft = CheckMove.CheckMoveUpLeft(board, i, j);
-                        bool canMoveUpAndRight = CheckMove.CheckMoveUpRight(board, i, j);
+                        Boolean canMoveUpAndLeft = CheckMove.CheckMoveUpLeft(board, row, column);
+                        Boolean canMoveUpAndRight = CheckMove.CheckMoveUpRight(board, row, column);
                         if (canMoveUpAndLeft)
                         {
                             results.Add(new NextMove
                             {
-                                CurrentHeight = i,
-                                CurrentWidth = j,
-                                NextHeight = i - 1,
-                                NextWidth = j - 1,
+                                CurrentHeight = row,
+                                CurrentWidth = column,
+                                NextHeight = row - 1,
+                                NextWidth = column - 1,
                                 Takes = EmptyList
                             });
                         }
@@ -43,19 +43,19 @@ namespace DraughtsGameFunctionService.Helpers
                         {
                             results.Add(new NextMove
                             {
-                                CurrentHeight = i,
-                                CurrentWidth = j,
-                                NextHeight = i - 1,
-                                NextWidth = j + 1,
+                                CurrentHeight = row,
+                                CurrentWidth = column,
+                                NextHeight = row - 1,
+                                NextWidth = column + 1,
                                 Takes = EmptyList
                             });
                         }
                         if (canMoveUpAndLeft == false || canMoveUpAndRight == false)
                         {
-                            Tree resultTree = CheckMove.CheckTakeUp(board, i, j, new int[] { 2 }, new Tree(new TreeTake
+                            Tree resultTree = CheckMove.CheckTakeUp(board, row, column, new Int64[] { 2 }, new Tree(new TreeTake
                             {
-                                CurrentHeight = i,
-                                CurrentWidth = j,
+                                CurrentHeight = row,
+                                CurrentWidth = column,
                             }));
                             if (resultTree.Left != null || resultTree.Right != null)
                             {
@@ -66,17 +66,17 @@ namespace DraughtsGameFunctionService.Helpers
                     }
                     else if (piece == 2 && player == 2)
                     {
-                        bool canMoveDownAndLeft = CheckMove.CheckMoveDownLeft(board, i, j);
-                        bool canMoveDownAndRight = CheckMove.CheckMoveDownRight(board, i, j);
+                        Boolean canMoveDownAndLeft = CheckMove.CheckMoveDownLeft(board, row, column);
+                        Boolean canMoveDownAndRight = CheckMove.CheckMoveDownRight(board, row, column);
 
                         if (canMoveDownAndLeft)
                         {
                             results.Add(new NextMove
                             {
-                                CurrentHeight = i,
-                                CurrentWidth = j,
-                                NextHeight = i + 1,
-                                NextWidth = j - 1,
+                                CurrentHeight = row,
+                                CurrentWidth = column,
+                                NextHeight = row + 1,
+                                NextWidth = column - 1,
                                 Takes = EmptyList
                             });
                         }
@@ -84,19 +84,19 @@ namespace DraughtsGameFunctionService.Helpers
                         {
                             results.Add(new NextMove
                             {
-                                CurrentHeight = i,
-                                CurrentWidth = j,
-                                NextHeight = i + 1,
-                                NextWidth = j + 1,
+                                CurrentHeight = row,
+                                CurrentWidth = column,
+                                NextHeight = row + 1,
+                                NextWidth = column + 1,
                                 Takes = EmptyList
                             });
                         }
                         if (canMoveDownAndLeft == false || canMoveDownAndRight == false)
                         {
-                            Tree resultTree = CheckMove.CheckTakeDown(board, i, j, new int[] { 1 }, new Tree(new TreeTake
+                            Tree resultTree = CheckMove.CheckTakeDown(board, row, column, new Int64[] { 1 }, new Tree(new TreeTake
                             {
-                                CurrentHeight = i,
-                                CurrentWidth = j,
+                                CurrentHeight = row,
+                                CurrentWidth = column,
                             }));
                             if (resultTree.Left != null || resultTree.Right != null)
                             {
@@ -107,19 +107,19 @@ namespace DraughtsGameFunctionService.Helpers
                     }
                     else if ((piece == 3 && player == 1) || (piece == 4 && player == 2))
                     {
-                        bool canMoveUpAndLeft = CheckMove.CheckMoveUpLeft(board, i, j);
-                        bool canMoveUpAndRight = CheckMove.CheckMoveUpRight(board, i, j);
-                        bool canMoveDownAndLeft = CheckMove.CheckMoveDownLeft(board, i, j);
-                        bool canMoveDownAndRight = CheckMove.CheckMoveDownRight(board, i, j);
+                        Boolean canMoveUpAndLeft = CheckMove.CheckMoveUpLeft(board, row, column);
+                        Boolean canMoveUpAndRight = CheckMove.CheckMoveUpRight(board, row, column);
+                        Boolean canMoveDownAndLeft = CheckMove.CheckMoveDownLeft(board, row, column);
+                        Boolean canMoveDownAndRight = CheckMove.CheckMoveDownRight(board, row, column);
 
                         if (canMoveUpAndLeft)
                         {
                             results.Add(new NextMove
                             {
-                                CurrentHeight = i,
-                                CurrentWidth = j,
-                                NextHeight = i - 1,
-                                NextWidth = j - 1,
+                                CurrentHeight = row,
+                                CurrentWidth = column,
+                                NextHeight = row - 1,
+                                NextWidth = column - 1,
                                 Takes = EmptyList
                             });
                         }
@@ -127,10 +127,10 @@ namespace DraughtsGameFunctionService.Helpers
                         {
                             results.Add(new NextMove
                             {
-                                CurrentHeight = i,
-                                CurrentWidth = j,
-                                NextHeight = i - 1,
-                                NextWidth = j + 1,
+                                CurrentHeight = row,
+                                CurrentWidth = column,
+                                NextHeight = row - 1,
+                                NextWidth = column + 1,
                                 Takes = EmptyList
                             });
                         }
@@ -138,10 +138,10 @@ namespace DraughtsGameFunctionService.Helpers
                         {
                             results.Add(new NextMove
                             {
-                                CurrentHeight = i,
-                                CurrentWidth = j,
-                                NextHeight = i + 1,
-                                NextWidth = j - 1,
+                                CurrentHeight = row,
+                                CurrentWidth = column,
+                                NextHeight = row + 1,
+                                NextWidth = column - 1,
                                 Takes = EmptyList
                             });
                         }
@@ -149,20 +149,20 @@ namespace DraughtsGameFunctionService.Helpers
                         {
                             results.Add(new NextMove
                             {
-                                CurrentHeight = i,
-                                CurrentWidth = j,
-                                NextHeight = i + 1,
-                                NextWidth = j + 1,
+                                CurrentHeight = row,
+                                CurrentWidth = column,
+                                NextHeight = row + 1,
+                                NextWidth = column + 1,
                                 Takes = EmptyList
                             });
                         }
                         if (canMoveUpAndLeft == false || canMoveUpAndRight == false || canMoveDownAndLeft == false || canMoveDownAndRight == false)
                         {
-                            int[] countersToTake = piece == 3 ? new int[] { 2, 4 } : new int[] { 1, 3 };
-                            KingTree resultTree = CheckMove.CheckKingTake(board, i, j, i, j, countersToTake, new KingTree(new TreeTake
+                            Int64[] countersToTake = piece == 3 ? new Int64[] { 2, 4 } : new Int64[] { 1, 3 };
+                            KingTree resultTree = CheckMove.CheckKingTake(board, row, column, row, column, countersToTake, new KingTree(new TreeTake
                             {
-                                CurrentHeight = i,
-                                CurrentWidth = j,
+                                CurrentHeight = row,
+                                CurrentWidth = column,
                             }));
                             if (resultTree.DownLeft != null || resultTree.DownRight != null || resultTree.UpLeft != null || resultTree.UpRight != null)
                             {

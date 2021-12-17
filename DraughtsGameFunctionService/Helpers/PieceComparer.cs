@@ -7,7 +7,7 @@ namespace DraughtsGameFunctionService.Helpers
 {
     public class PieceComparer : IEqualityComparer<Piece>
     {
-        public bool Equals(Piece piece1, Piece piece2)
+        public Boolean Equals(Piece piece1, Piece piece2)
         {
             return piece1.Height == piece2.Height && piece1.Width == piece2.Width;
         }

@@ -6,7 +6,7 @@ namespace DraughtsGameFunctionModels.Service
 {
     public class MinimaxOutcome
     {
-        public int Evaluation { get; set; }
+        public Int64 Evaluation { get; set; }
 
         public PotentialNextMove PotentialNextMove { get; set; }
     }
