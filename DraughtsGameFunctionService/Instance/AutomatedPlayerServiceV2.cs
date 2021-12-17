@@ -131,26 +131,26 @@ namespace DraughtsGameFunctionService.Intstance
 
         private Int64 evaluate(Int64[,] board)
         {
-            int player1Counter = 0;
-            int player2Counter = 0;
+            Int64 player1Counter = 0;
+            Int64 player2Counter = 0;
 
-            for (int i = 0; i < board.GetLength(0); i++)
+            for (Int64 row = 0; row < board.GetLength(0); row++)
             {
-                for (int j = 1 - (i % 2); j < board.GetLength(1); j++)
+                for (Int64 column = 1 - (row % 2); column < board.GetLength(1); column++)
                 {
-                    if (board[i, j] == 1)
+                    if (board[row, column] == 1)
                     {
                         player1Counter++; ;
                     }
-                    else if (board[i, j] == 2)
+                    else if (board[row, column] == 2)
                     {
                         player2Counter++; ;
                     }
-                    else if (board[i, j] == 3)
+                    else if (board[row, column] == 3)
                     {
                         player1Counter += 2;
                     }
-                    else if (board[i, j] == 4)
+                    else if (board[row, column] == 4)
                     {
                         player2Counter += 2;
                     }
