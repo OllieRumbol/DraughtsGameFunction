@@ -6,12 +6,12 @@ namespace DraughtsGameFunctionModels.Service
 {
     public class TreeTake
     {
-        public int CurrentHeight { get; set; }
+        public Int64 CurrentHeight { get; set; }
 
-        public int CurrentWidth { get; set; }
+        public Int64 CurrentWidth { get; set; }
 
-        public int TakeHeight { get; set; }
+        public Int64 TakeHeight { get; set; }
 
-        public int TakeWidth { get; set; }
+        public Int64 TakeWidth { get; set; }
     }
 }

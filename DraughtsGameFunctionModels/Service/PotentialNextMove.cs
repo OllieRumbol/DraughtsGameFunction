@@ -1,18 +1,19 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace DraughtsGameFunctionModels.Service
 {
     public class PotentialNextMove
     {
-        public int[,] Board { get; set; }
+        public Int64[,] Board { get; set; }
 
-        public int CurrentHeight { get; set; }
+        public Int64 CurrentHeight { get; set; }
 
-        public int CurrentWidth { get; set; }
+        public Int64 CurrentWidth { get; set; }
 
-        public int NextHeight { get; set; }
+        public Int64 NextHeight { get; set; }
 
-        public int NextWidth { get; set; }
+        public Int64 NextWidth { get; set; }
 
         public List<Piece> Takes { get; set; }
     }

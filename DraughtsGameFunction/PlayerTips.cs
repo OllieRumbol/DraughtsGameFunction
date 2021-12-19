@@ -22,7 +22,7 @@ namespace DraughtsGameFunction
         {
             try
             {
-                string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+                String requestBody = await new StreamReader(req.Body).ReadToEndAsync();
                 GetPlayerTips getPlayerTips = JObject.Parse(requestBody).ToObject<GetPlayerTips>();
 
                 IPlayerTipsService service = new PlayerTipsService();

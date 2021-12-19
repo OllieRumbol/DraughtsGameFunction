@@ -7,7 +7,7 @@ namespace DraughtsGameFunctionService.Helpers
 {
     public class CheckMove
     {
-        public static bool CheckMoveUpLeft(int[,] board, int height, int width)
+        public static Boolean CheckMoveUpLeft(Int64[,] board, Int64 height, Int64 width)
         {
             try
             {
@@ -21,7 +21,7 @@ namespace DraughtsGameFunctionService.Helpers
             catch { return false; }
         }
 
-        public static bool CheckMoveUpRight(int[,] board, int height, int width)
+        public static Boolean CheckMoveUpRight(Int64[,] board, Int64 height, Int64 width)
         {
             try
             {
@@ -35,7 +35,7 @@ namespace DraughtsGameFunctionService.Helpers
             catch { return false; }
         }
 
-        public static bool CheckMoveDownLeft(int[,] board, int height, int width)
+        public static Boolean CheckMoveDownLeft(Int64[,] board, Int64 height, Int64 width)
         {
             try
             {
@@ -49,7 +49,7 @@ namespace DraughtsGameFunctionService.Helpers
             catch { return false; }
         }
 
-        public static bool CheckMoveDownRight(int[,] board, int height, int width)
+        public static Boolean CheckMoveDownRight(Int64[,] board, Int64 height, Int64 width)
         {
             try
             {
@@ -63,23 +63,23 @@ namespace DraughtsGameFunctionService.Helpers
             catch { return false; }
         }
 
-        public static Tree CheckTakeDown(int[,] board, int i, int j, int[] playerToTake, Tree tree)
+        public static Tree CheckTakeDown(Int64[,] board, Int64 height, Int64 width, Int64[] playerToTake, Tree tree)
         {
             try
             {
                 //left
-                if (Array.IndexOf(playerToTake, board[i + 1, j - 1]) > -1)
+                if (Array.IndexOf(playerToTake, board[height + 1, width - 1]) > -1)
                 {
-                    if (board[i + 2, j - 2] == 5 || board[i + 2, j - 2] == 6)
+                    if (board[height + 2, width - 2] == 5 || board[height + 2, width - 2] == 6)
                     {
                         tree.Left = new Tree(new TreeTake
                         {
-                            TakeHeight = i + 1,
-                            TakeWidth = j - 1,
-                            CurrentHeight = i + 2,
-                            CurrentWidth = j - 2
+                            TakeHeight = height + 1,
+                            TakeWidth = width - 1,
+                            CurrentHeight = height + 2,
+                            CurrentWidth = width - 2
                         });
-                        CheckTakeDown(board, i + 2, j - 2, playerToTake, tree.Left);
+                        CheckTakeDown(board, height + 2, width - 2, playerToTake, tree.Left);
                     }
                 }
             }
@@ -88,18 +88,18 @@ namespace DraughtsGameFunctionService.Helpers
             try
             {
                 //Right
-                if (Array.IndexOf(playerToTake, board[i + 1, j + 1]) > -1)
+                if (Array.IndexOf(playerToTake, board[height + 1, width + 1]) > -1)
                 {
-                    if (board[i + 2, j + 2] == 5 || board[i + 2, j + 2] == 6)
+                    if (board[height + 2, width + 2] == 5 || board[height + 2, width + 2] == 6)
                     {
                         tree.Right = new Tree(new TreeTake
                         {
-                            TakeHeight = i + 1,
-                            TakeWidth = j + 1,
-                            CurrentHeight = i + 2,
-                            CurrentWidth = j + 2
+                            TakeHeight = height + 1,
+                            TakeWidth = width + 1,
+                            CurrentHeight = height + 2,
+                            CurrentWidth = width + 2
                         });
-                        CheckTakeDown(board, i + 2, j + 2, playerToTake, tree.Right);
+                        CheckTakeDown(board, height + 2, width + 2, playerToTake, tree.Right);
                     }
                 }
             }
@@ -108,7 +108,7 @@ namespace DraughtsGameFunctionService.Helpers
             return tree;
         }
 
-        public static Tree CheckTakeUp(int[,] board, int i, int j, int[] playerToTake, Tree tree)
+        public static Tree CheckTakeUp(Int64[,] board, Int64 i, Int64 j, Int64[] playerToTake, Tree tree)
         {
             try
             {
@@ -153,7 +153,7 @@ namespace DraughtsGameFunctionService.Helpers
             return tree;
         }
 
-        public static KingTree CheckKingTake(int[,] board, int preHeight, int preWidth, int height, int width, int[] playerToTake, KingTree tree)
+        public static KingTree CheckKingTake(Int64[,] board, Int64 preHeight, Int64 preWidth, Int64 height, Int64 width, Int64[] playerToTake, KingTree tree)
         {
             try
             {
