@@ -140,11 +140,11 @@ namespace DraughtsGameFunctionService.Intstance
                 {
                     if (board[row, column] == 1)
                     {
-                        player1Counter++; ;
+                        player1Counter++;
                     }
                     else if (board[row, column] == 2)
                     {
-                        player2Counter++; ;
+                        player2Counter++;
                     }
                     else if (board[row, column] == 3)
                     {
