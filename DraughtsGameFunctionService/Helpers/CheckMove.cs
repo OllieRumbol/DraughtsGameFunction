@@ -11,12 +11,7 @@ namespace DraughtsGameFunctionService.Helpers
         {
             try
             {
-                if (board[height - 1, width - 1] == 5 || board[height - 1, width - 1] == 6)
-                {
-                    return true;
-                }
-
-                return false;
+                return board[height - 1, width - 1] == 5 || board[height - 1, width - 1] == 6;
             }
             catch { return false; }
         }
@@ -25,12 +20,7 @@ namespace DraughtsGameFunctionService.Helpers
         {
             try
             {
-                if (board[height - 1, width + 1] == 5 || board[height - 1, width + 1] == 6)
-                {
-                    return true;
-                }
-
-                return false;
+                return board[height - 1, width + 1] == 5 || board[height - 1, width + 1] == 6;
             }
             catch { return false; }
         }
@@ -39,12 +29,7 @@ namespace DraughtsGameFunctionService.Helpers
         {
             try
             {
-                if (board[height + 1, width - 1] == 5 || board[height + 1, width - 1] == 6)
-                {
-                    return true;
-                }
-
-                return false;
+                return board[height + 1, width - 1] == 5 || board[height + 1, width - 1] == 6;
             }
             catch { return false; }
         }
@@ -53,12 +38,7 @@ namespace DraughtsGameFunctionService.Helpers
         {
             try
             {
-                if (board[height + 1, width + 1] == 5 || board[height + 1, width + 1] == 6)
-                {
-                    return true;
-                }
-
-                return false;
+                return board[height + 1, width + 1] == 5 || board[height + 1, width + 1] == 6;
             }
             catch { return false; }
         }

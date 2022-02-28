@@ -24,7 +24,7 @@ namespace DraughtsGameFunctionService.Intstance
             };
         }
 
-        private Int64 evaluate(Int64[,] board)
+        public Int64 Evaluate(Int64[,] board)
         {
             const Int64 numberOfRows = 7;
             const Int64 kingBonusPoints = 3;
@@ -65,7 +65,7 @@ namespace DraughtsGameFunctionService.Intstance
             {
                 return new MinimaxOutcome
                 {
-                    Evaluation = evaluate(board)
+                    Evaluation = Evaluate(board)
                 };
             }
 

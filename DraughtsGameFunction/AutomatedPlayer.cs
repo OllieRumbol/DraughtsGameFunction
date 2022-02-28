@@ -25,34 +25,13 @@ namespace DraughtsGameFunction
                 GetNextMove getNextMove = JObject.Parse(requestBody).ToObject<GetNextMove>();
 
                 Int64 version = getNextMove.Version;
-                IAutomatedPlayerService service;
-
-                switch (version)
+                IAutomatedPlayerService service = version switch
                 {
-                    case 1:
-                        service = new AutomatedPlayerServiceV1();
-                        break;
-                    case 2:
-                        service = new AutomatedPlayerServiceV2();
-                        break;
-                    case 3:
-                        service = new AutomatedPlayerServiceV3();
-                        break;
-                    default:
-                        service = null;
-                        break;
-                }
-
-                if (service == null)
-                {
-                    return new BadRequestObjectResult(
-                        new AutomatedPlayerResponse
-                        {
-                            Successful = false,
-                            ErrorMessage = "No version in body of request"
-                        }
-                    );
-                }
+                    1 => new AutomatedPlayerServiceV1(),
+                    2 => new AutomatedPlayerServiceV2(),
+                    3 => new AutomatedPlayerServiceV3(),
+                    _  => throw new ArgumentException("No version in body of request")
+                };
 
                 NextMove nextmove = service.GetNextMoveForAutomatedPlayer(getNextMove);
                 return new OkObjectResult(
