@@ -29,7 +29,7 @@ namespace DraughtsGameFunctionService.Intstance
             {
                 return new MinimaxOutcome
                 {
-                    Evaluation = evaluate(board)
+                    Evaluation = Evaluate(board)
                 };
             }
 
@@ -77,7 +77,7 @@ namespace DraughtsGameFunctionService.Intstance
             }
         }
 
-        private List<PotentialNextMove> GetAvailableBoards(Int64[,] board, Int64 player)
+        public List<PotentialNextMove> GetAvailableBoards(Int64[,] board, Int64 player)
         {
             List<PotentialNextMove> results = new List<PotentialNextMove>();
 
@@ -129,7 +129,7 @@ namespace DraughtsGameFunctionService.Intstance
             return results;
         }
 
-        private Int64 evaluate(Int64[,] board)
+        public Int64 Evaluate(Int64[,] board)
         {
             Int64 player1Counter = 0;
             Int64 player2Counter = 0;
