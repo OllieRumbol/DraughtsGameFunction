@@ -1,13 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30804.86
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32014.148
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DraughtsGameFunction", "DraughtsGameFunction\DraughtsGameFunction.csproj", "{6DB05D4F-D74D-474D-9FDF-B1EEF3EF8558}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DraughtsGameFunctionModels", "DraughtsGameFunctionModels\DraughtsGameFunctionModels.csproj", "{97554B3E-35B6-4A17-912C-28A4FCBD5787}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DraughtsGameFunctionService", "DraughtsGameFunctionService\DraughtsGameFunctionService.csproj", "{47B9F41D-AD10-44F6-B3D8-AD958EF59269}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DraughtsGameFunctionTests", "DraughtsGameFunctionTests\DraughtsGameFunctionTests.csproj", "{142A27E7-3371-4882-95BC-F56B6A719F72}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +29,10 @@ Global
 		{47B9F41D-AD10-44F6-B3D8-AD958EF59269}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{47B9F41D-AD10-44F6-B3D8-AD958EF59269}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{47B9F41D-AD10-44F6-B3D8-AD958EF59269}.Release|Any CPU.Build.0 = Release|Any CPU
+		{142A27E7-3371-4882-95BC-F56B6A719F72}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{142A27E7-3371-4882-95BC-F56B6A719F72}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{142A27E7-3371-4882-95BC-F56B6A719F72}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{142A27E7-3371-4882-95BC-F56B6A719F72}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
