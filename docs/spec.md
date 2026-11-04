@@ -91,7 +91,9 @@ Measured on 2026-11-02, from the starting board (section 2.2), with the current 
 | 6 | 736 ms | 177,083 |
 | 7 | 4,614 ms | 1,458,975 |
 
-The live API took 1.56 s and then 0.98 s for two calls in a row at depth 5, so it runs this search about 10 times slower than the local machine. The web app uses depth 4 for Normal and depth 5 for Hard. Each extra depth costs about 7 times more. Positions in the middle of a game, with kings, have more moves than the starting board and are slower.
+These local times are on .NET 10. On 2026-11-04, the same search on the same machine took 388 ms at depth 5 on .NET 6 and 118 ms on .NET 10, so the move to .NET 10 alone makes it about 3 times faster.
+
+The live API, on .NET 6, took 1.56 s and then 0.98 s for two calls in a row at depth 5. That time includes the network. The web app uses depth 4 for Normal and depth 5 for Hard. Each extra depth costs about 7 times more. Positions in the middle of a game, with kings, have more moves than the starting board and are slower.
 
 ### 2.6 Current hosting and cost
 
