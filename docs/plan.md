@@ -336,6 +336,7 @@ The difficulty is not logged by default. The check in section 7.3 runs each leve
 | --- | --- |
 | Authentication | Anonymous, as spec section 5.3. The computer's moves and the rules are public. |
 | CORS | `https://ollierumbol.github.io` only, set on the function app. Blocks other sites in a browser, but not direct calls, which is why the cost limits exist. |
+| Branch protection | `master` requires a pull request with 0 approvals and a passing `Build and test` check. It applies to admins too, and blocks force pushes and deletion. Same as PickTime. A merge deploys, so a red build must not be able to merge. |
 | Deployment | OpenID Connect through a user-assigned managed identity. No stored secret. The ids are repository variables. |
 | Publishing credentials | SCM and FTP basic authentication are off on the function app, as in PickTime. So no publish profile works. |
 | HTTPS | HTTPS Only is on, as in PickTime. |
@@ -510,6 +511,8 @@ One workflow, `.github/workflows/build-and-deploy.yml`, copied from PickTime, wi
 | Solution | `.slnx` | `DraughtsGameFunction.sln` | Existing file |
 
 Unchanged from PickTime: build and test on every pull request, NuGet Audit warnings as errors, deploy only on a push to the branch, `azure/login` with OpenID Connect, `Azure/functions-action`, and no `environment:` on the deploy job. Microsoft's docs confirm that Flex Consumption uses package deployment through this action, and that `sku` is only needed with a publish profile. The `include-hidden-files` setting on the artifact stays, because the isolated worker needs `.azurefunctions`.
+
+**Branch protection depends on two things here (section 6).** The job keeps the name `Build and test`, because the required check matches that name. The `pull_request` trigger has no path filter, because a required check that never runs would stop a documents-only pull request from merging.
 
 **Rollback.** Flex Consumption has no slots and keeps no previous package. Revert the commit on `master`, and the pipeline deploys the previous version.
 

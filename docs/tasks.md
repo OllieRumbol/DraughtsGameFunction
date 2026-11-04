@@ -25,6 +25,8 @@ Unless a task says otherwise, run commands from the repository root. Task branch
 dotnet test DraughtsGameFunction.sln
 ```
 
+**From T3 on, `master` is protected.** Every task ends with a pull request, including a manual task. Its pull request ticks the task and holds the evidence.
+
 **From T5 on, every merge to `master` deploys to the new app.** From T8 on, that app is the one the live game uses.
 
 ## Phase 1 — Platform
@@ -61,14 +63,15 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
   - Notes: Azurite is not on the PATH on this machine. It is at `C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\Extensions\Microsoft\Azure Storage Emulator\azurite.exe`. The git-ignored `local.settings.json` needs the settings in plan section 2.
 
 - [ ] **T3 — Build and test every pull request**
-  - Refs: spec 3 goal 2, spec 6.4 item 7, spec 9, plan 8.4, risk 11
+  - Refs: spec 3 goal 2, spec 6.4 item 7, spec 9, plan 6, plan 8.4, risk 11
   - Depends on: T1
   - Done when:
     - `.github/workflows/build-and-deploy.yml` builds and tests on every pull request and on a push to `master`, with the differences in plan section 8.4. It has no deploy job yet.
     - NuGet Audit warnings are errors in CI.
     - A pull request shows the result.
-  - Verify: `gh pr checks` on this task's pull request shows the build passed. Push a temporary failing test to the branch, confirm that the check fails, then remove the test and confirm that it passes again.
-  - Notes:
+    - The owner approves, and `master` is protected as in plan section 6.
+  - Verify: `gh pr checks` on this task's pull request shows the build passed. Push a temporary failing test to the branch, confirm that the check fails, then remove the test and confirm that it passes again. After the merge, `gh api repos/OllieRumbol/DraughtsGameFunction/branches/master/protection --jq '{checks: .required_status_checks.contexts, approvals: .required_pull_request_reviews.required_approving_review_count, admins: .enforce_admins.enabled, forcePush: .allow_force_pushes.enabled, deletions: .allow_deletions.enabled}'` shows the settings in plan section 6.
+  - Notes: Turn the protection on after this task's pull request merges, because the check must have run once before it can be required. It changes a repository setting, so ask the owner first.
 
 - [ ] **T4 — Create the Azure resources (manual)**
   - Refs: spec 2.6, spec 6.4 items 4–5, plan 2, plan 6, plan 8.1, plan 8.2, risks 2, 4
