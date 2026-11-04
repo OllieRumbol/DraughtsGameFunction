@@ -49,7 +49,7 @@ public class AutomatedPlayerTests
 
         var response = await PostAsync(body);
 
-        AssertBadRequest(response, "No version in body of request");
+        TestHttp.AssertBadRequest(response, "No version in body of request");
         Assert.AreEqual(System.Text.Json.JsonValueKind.Null, response.Json.GetProperty("nextMove").ValueKind);
     }
 
@@ -67,7 +67,7 @@ public class AutomatedPlayerTests
 
         var response = await PostAsync(body);
 
-        AssertBadRequest(response, "Board must be 8 rows of 8 values.");
+        TestHttp.AssertBadRequest(response, "Board must be 8 rows of 8 values.");
     }
 
     // Test 5: spec section 6.1.2, rule 3. Padding keeps the body valid JSON, so only its size can fail it.
@@ -80,7 +80,7 @@ public class AutomatedPlayerTests
 
         var response = await PostAsync(body, sendContentLength);
 
-        AssertBadRequest(response, "The request body must be 10 KB or smaller.");
+        TestHttp.AssertBadRequest(response, "The request body must be 10 KB or smaller.");
     }
 
     [TestMethod]
@@ -108,7 +108,7 @@ public class AutomatedPlayerTests
     {
         var response = await PostAsync(body);
 
-        AssertBadRequest(response, expectedMessage);
+        TestHttp.AssertBadRequest(response, expectedMessage);
     }
 
     private static string PaddedBody(int sizeInBytes)
@@ -125,12 +125,5 @@ public class AutomatedPlayerTests
         var result = await AutomatedPlayer.Run(request, CancellationToken.None);
 
         return await TestHttp.ExecuteAsync(result, request);
-    }
-
-    private static void AssertBadRequest(TestResponse response, string expectedMessage)
-    {
-        Assert.AreEqual(StatusCodes.Status400BadRequest, response.StatusCode);
-        Assert.IsFalse(response.Json.GetProperty("successful").GetBoolean());
-        Assert.AreEqual(expectedMessage, response.Json.GetProperty("errorMessage").GetString());
     }
 }

@@ -42,7 +42,7 @@ internal sealed class BoardJsonConverter : JsonConverter<long[,]>
     public override void Write(Utf8JsonWriter writer, long[,] value, JsonSerializerOptions options) =>
         throw new NotSupportedException("The board is only read from requests.");
 
-    private static long ReadWholeNumber(Utf8JsonReader reader)
+    private static long ReadWholeNumber(in Utf8JsonReader reader)
     {
         RequireToken(reader, JsonTokenType.Number);
 
@@ -54,7 +54,7 @@ internal sealed class BoardJsonConverter : JsonConverter<long[,]>
         return value;
     }
 
-    private static void RequireToken(Utf8JsonReader reader, JsonTokenType expected)
+    private static void RequireToken(in Utf8JsonReader reader, JsonTokenType expected)
     {
         if (reader.TokenType != expected)
         {

@@ -39,7 +39,7 @@ public class PlayerTipsTests
 
         var response = await PostAsync(body);
 
-        AssertBadRequest(response, "Board must be 8 rows of 8 values.");
+        TestHttp.AssertBadRequest(response, "Board must be 8 rows of 8 values.");
     }
 
     // Test 5: spec section 6.1.2, rule 3.
@@ -52,7 +52,7 @@ public class PlayerTipsTests
 
         var response = await PostAsync(body, sendContentLength);
 
-        AssertBadRequest(response, "The request body must be 10 KB or smaller.");
+        TestHttp.AssertBadRequest(response, "The request body must be 10 KB or smaller.");
     }
 
     // Test 29: spec section 6.1.2, rule 1.
@@ -65,7 +65,7 @@ public class PlayerTipsTests
     {
         var response = await PostAsync(body);
 
-        AssertBadRequest(response, expectedMessage);
+        TestHttp.AssertBadRequest(response, expectedMessage);
     }
 
     // Spec section 6.1.2, rule 5: until that rule starts, a missing TipFor returns an empty list.
@@ -87,12 +87,5 @@ public class PlayerTipsTests
         var result = await PlayerTips.Run(request, CancellationToken.None);
 
         return await TestHttp.ExecuteAsync(result, request);
-    }
-
-    private static void AssertBadRequest(TestResponse response, string expectedMessage)
-    {
-        Assert.AreEqual(StatusCodes.Status400BadRequest, response.StatusCode);
-        Assert.IsFalse(response.Json.GetProperty("successful").GetBoolean());
-        Assert.AreEqual(expectedMessage, response.Json.GetProperty("errorMessage").GetString());
     }
 }

@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <PackageReference Include="MSTest" />
-    <PackageReference Include="coverlet.collector" />
   </ItemGroup>
 
   <ItemGroup>

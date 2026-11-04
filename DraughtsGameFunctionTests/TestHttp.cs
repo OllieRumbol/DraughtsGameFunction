@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace DraughtsGameFunctionTests;
 
@@ -43,6 +44,13 @@ internal static class TestHttp
         var json = JsonDocument.Parse(body.ToArray()).RootElement;
 
         return new TestResponse(httpContext.Response.StatusCode, json);
+    }
+
+    public static void AssertBadRequest(TestResponse response, string expectedMessage)
+    {
+        Assert.AreEqual(StatusCodes.Status400BadRequest, response.StatusCode);
+        Assert.IsFalse(response.Json.GetProperty("successful").GetBoolean());
+        Assert.AreEqual(expectedMessage, response.Json.GetProperty("errorMessage").GetString());
     }
 }
 
