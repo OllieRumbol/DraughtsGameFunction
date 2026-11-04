@@ -33,7 +33,7 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
 
 **Deadline:** T1 to T8 are done before 10 November 2026 (spec 2.4). T9 can follow after that date.
 
-- [ ] **T1 — Port the solution to .NET 10 on the isolated worker**
+- [x] **T1 — Port the solution to .NET 10 on the isolated worker**
   - Refs: spec 2.4, spec 3 goal 1, spec 4, spec 5, spec 6.1.1 items 1–3 and 5, spec 6.1.2 rules 1–3, spec 6.3, spec 6.4 items 7–8, plan 3.1, plan 3.2, plan 3.3, plan 3.5, plan 4, plan 7.1, tests 1–5, 29
   - Depends on: —
   - Done when:
@@ -48,6 +48,7 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
   - Notes: Nullable stays off for old code (plan 3.5). The 500 response for "no legal move" is accepted until T12 (plan 4).
     - For T2: `func start` warns that `dotnet run` is the preferred way to start an isolated project. `local.settings.json` now sets `dotnet-isolated` on this machine.
     - For T17: `RequestReader.MessageFor` treats a `JsonException` with an inner exception as broken JSON, so that a body cut off inside the board does not get the board message. Keep this when adding the `Difficulty`, `Version` and `TipFor` paths. The functions stay static, creating services with `new`, until T17.
+    - Open for the owner: `JsonSerializerDefaults.Web` accepts `"Version": "2"`, which spec 6.1.1 item 8 does not allow. Plan 3.3 sets these options, so T1 follows the plan.
     - Evidence: this task's pull request.
 
 - [ ] **T2 — Add the error handling and request logging**
