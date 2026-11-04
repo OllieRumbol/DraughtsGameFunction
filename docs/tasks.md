@@ -34,29 +34,31 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
 **Deadline:** T1 to T8 are done before 10 November 2026 (spec 2.4). T9 can follow after that date.
 
 - [ ] **T1 — Port the solution to .NET 10 on the isolated worker**
-  - Refs: spec 2.4, spec 3 goal 1, spec 5, spec 6.1.1 items 1–3 and 5, spec 6.1.2 rules 1–3, spec 6.4 items 7–8, plan 3.1, plan 3.2, plan 3.3, plan 3.5, plan 4, plan 7.1, tests 1–5
+  - Refs: spec 2.4, spec 3 goal 1, spec 4, spec 5, spec 6.1.1 items 1–3 and 5, spec 6.1.2 rules 1–3, spec 6.3, spec 6.4 items 7–8, plan 3.1, plan 3.2, plan 3.3, plan 3.5, plan 4, plan 7.1, tests 1–5, 29
   - Depends on: —
   - Done when:
     - `Directory.Build.props` sets `net10.0` for every project, and `Directory.Packages.props` holds every package version.
-    - All packages are on supported versions. The models project no longer references the Functions SDK.
+    - All packages are on supported versions. The models and service projects no longer reference the Functions SDK.
     - The host uses the isolated worker with ASP.NET Core integration, and both functions keep their names and routes.
-    - `RequestReader`, `BoardJsonConverter` and the shared JSON options exist as in plan section 3.3. `System.Text.Json` is the only JSON library.
+    - `RequestReader`, `BoardJsonConverter` and the shared JSON options exist as in plan section 3.3, other than `DifficultyJsonConverter`, which T17 adds. `System.Text.Json` is the only JSON library.
+    - The test project references the host project, so tests can call the functions.
     - Move generation and the search are unchanged, and the existing tests pass with no change to what they check.
-    - Tests 1–5 pass.
-  - Verify: the standard test command; then `dotnet list DraughtsGameFunction.sln package --vulnerable --include-transitive` reports no vulnerable package
+    - Tests 1–5 and 29 pass.
+  - Verify: the standard test command; then `dotnet list DraughtsGameFunction.sln package --vulnerable --include-transitive` reports no vulnerable package; then `dotnet list DraughtsGameFunction.sln package --deprecated` and `--outdated`, with the result in the pull request
   - Notes: This task has the deadline, so keep it to the port. Nullable stays off for old code (plan 3.5). The 500 response for "no legal move" is accepted until T12 (plan 4).
 
 - [ ] **T2 — Add the error handling and request logging**
-  - Refs: spec 6.3, spec 6.4 item 6, plan 3.2, plan 4, plan 5, test 6
+  - Refs: spec 6.3, spec 6.4 item 6, plan 2, plan 3.2, plan 4, plan 5, tests 6, 34
   - Depends on: T1
   - Done when:
     - The exception middleware returns the 500 response in plan section 4, with no exception text.
     - `RequestLoggingMiddleware` writes one line for each request, as in plan section 5, and other categories log at Warning and above.
+    - `appsettings.json` and `host.json` hold the settings in plan section 5, including `functionTimeout`.
     - The OpenTelemetry exporter is set up as in plan section 5, and does not run when no connection string is set.
-    - Test 6 passes.
+    - Tests 6 and 34 pass.
     - The app starts locally, and answers a GetPotentialMoves request with one log line.
   - Verify: the standard test command; then, with Azurite running, `func start` in `DraughtsGameFunction` and a POST of the spec section 5.2 request to `http://localhost:7071/api/GetPotentialMoves` returns the four squares, and the console shows the line `returned 200 in`
-  - Notes: Azurite is not on the PATH on this machine. PickTime used Visual Studio's copy. The git-ignored `local.settings.json` also needs `FUNCTIONS_WORKER_RUNTIME` set to `dotnet-isolated`.
+  - Notes: Azurite is not on the PATH on this machine. It is at `C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\Extensions\Microsoft\Azure Storage Emulator\azurite.exe`. The git-ignored `local.settings.json` needs the settings in plan section 2.
 
 - [ ] **T3 — Build and test every pull request**
   - Refs: spec 3 goal 2, spec 6.4 item 7, spec 9, plan 8.4, risk 11
@@ -72,14 +74,17 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
   - Refs: spec 2.6, spec 6.4 items 4–5, plan 2, plan 6, plan 8.1, plan 8.2, risks 2, 4
   - Depends on: —
   - Done when:
+    - The region check in plan section 8.2 shows that UK South offers Flex Consumption with .NET 10. If it does not, stop and tell the owner, because the spec requires UK South.
     - The resources in plan section 8.1 exist, other than the budgets, the action group and the Logic App. The final names and the new URL are recorded in plan section 8.1.
     - The allowances in plan section 8.1 were checked again on the Azure pricing pages. Any change is recorded in the plan.
     - The app has a maximum of 1 instance, 512 MB and a per-instance concurrency of 8.
+    - HTTPS Only is on, and SCM and FTP basic authentication are off.
     - CORS allows only `https://ollierumbol.github.io`.
     - The workspace's daily cap is 0.1 GB.
-    - The identity has its federated credential and its role on this app only.
+    - The app's logs go to `appi-draughts-game`, and creating the app made no second Application Insights resource or new default resource group.
+    - The identity has its federated credential and its role on this app only, with the subject form this repository sends.
     - `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID` are repository variables.
-  - Verify: `az resource list -g rg-draughts-game --query "[].{name:name,location:location}" -o table` shows every resource in UK South; `az functionapp scale config show -n func-draughts-game -g rg-draughts-game` shows the instance limits; `az functionapp cors show -n func-draughts-game -g rg-draughts-game` shows one origin
+  - Verify: `az resource list -g rg-draughts-game --query "[].{name:name,location:location}" -o table` shows every resource in UK South, and only one Application Insights resource; `az group list --query "[?starts_with(name,'DefaultResourceGroup')].name"` shows no new group; `az functionapp scale config show -n func-draughts-game -g rg-draughts-game` shows the instance limits; `az functionapp cors show -n func-draughts-game -g rg-draughts-game` shows one origin; `az functionapp show -n func-draughts-game -g rg-draughts-game --query httpsOnly` shows `true`; the portal shows `appi-draughts-game` linked to the app
   - Notes: Needs the owner's `az login`. It can start before T1 if time gets short, because a quota problem takes time to solve (risk 4). This is a public repository, so do not put the subscription ID or any connection string in this file or a pull request.
 
 - [ ] **T5 — Deploy on every merge to `master`**
@@ -89,13 +94,14 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - The workflow has a deploy job that runs only on a push to `master`, and needs the build job, so a failing test stops the deployment.
     - It signs in with OpenID Connect, and no credential is stored in the repository or in GitHub secrets.
     - Merging this task deploys the app, and the new URL answers.
-  - Verify: `gh run list --branch master --limit 1` shows the deploy succeeded after the merge; then a POST of the spec section 5.2 request to the new URL returns the four squares
+  - Verify: `gh run list --branch master --limit 1` shows the deploy succeeded after the merge; then a POST of the spec section 5.2 request to the new URL returns the four squares; SCM basic authentication is still off
   - Notes: The first deployment tests whether Website Contributor is enough for Flex Consumption (risk 6). If it is not, use the narrowest role that works, and record it in plan section 6.
 
 - [ ] **T6 — Add the cost limits (manual)**
   - Refs: spec 6.4 items 4–5, spec 9, plan 6, plan 8.1, plan 8.3, risk 5
-  - Depends on: T4
+  - Depends on: T4, T5
   - Done when:
+    - The allowances for the action group and the Logic App in plan section 8.1 were checked again on the Azure pricing pages. Any change is recorded in the plan.
     - The £1 budget emails the owner on actual and forecast cost.
     - The £3 budget calls the action group, and the action group calls the Logic App.
     - The Logic App's identity has its role on this app only.
@@ -113,22 +119,24 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - The response times at depth 4 and depth 5 are recorded and compared with the live app's. A warm-up request comes first.
     - 12 requests at once are sent, and the result is recorded.
   - Verify: the results above, in the pull request. The owner decides whether the speed is good enough to switch.
-  - Notes: CORS blocks a local copy of the web app, so this game uses a script. The full game in the web app comes in T8. If the speed is too slow, moving to 2,048 MB needs the owner's approval (risk 1).
+  - Notes: The full game in the web app comes in T8 (plan 7.3 step 2). If the speed is too slow, moving to 2,048 MB needs the owner's approval (risk 1).
 
 - [ ] **T8 — Release the web app with the new URL (manual)**
-  - Refs: spec 3 goal 1, spec 3 non-goals, spec 9, plan 7.3 step 2, plan 8.5 steps 2–4, risk 3
+  - Refs: spec 3 goal 1, spec 3 non-goals, spec 6.4 item 5, spec 9, plan 7.3 step 2, plan 8.3, plan 8.5 steps 2–5, risk 3
   - Depends on: T6, T7
   - Done when:
-    - In `draughtsgame`, a branch from `origin/main` changes only the two URLs in `src/logic/api.js`, and is merged to `main`.
-    - The owner approves, and the release runs as in plan section 8.5, from a clean copy of `main`.
+    - In `draughtsgame`, a branch from `origin/main` changes only the two URLs in `src/logic/api.js`.
+    - The owner approves before the merge to `main`, because the old workflow may publish at that point.
+    - The release runs as in plan section 8.5, from a clean copy of `main`.
     - The live site calls the new URL.
     - The owner plays a full game at each level on the live site.
     - The new app's logs show the requests, with no errors.
+    - With the app stopped by the Logic App, the live site shows its general error message. The app is then started again.
   - Verify: the site at `https://ollierumbol.github.io/draughtsgame` makes its requests to the new URL, shown in the browser's network view; then the query in plan section 5 returns rows
   - Notes: Leave the owner's uncommitted work on `feature/refactor-complete-board` untouched. The publish step has not been tested (plan 8.5). The old workflow also runs on the merge, and it may fail (risk 3). Rollback: restore the old URL and release again. The pull request and the merge are in the `draughtsgame` repository. Record the result in this repository's pull request.
 
 - [ ] **T9 — Delete the old resources (manual)**
-  - Refs: spec 9, plan 8.5 step 5
+  - Refs: spec 9, plan 8.5 step 6
   - Depends on: T8, plus a few days with no problems
   - Done when:
     - The owner confirms that the old resources can go.
@@ -140,28 +148,29 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
 
 ## Phase 2 — Move generation
 
-Goal: one move generator follows the house rules, defects 1, 2 and 5 are fixed, and all request validation is in place.
+Goal: one move generator follows the house rules, defects 1, 2, 5, 9 and 10 are fixed, and all request validation is in place.
 
 - [ ] **T10 — Add the new move generator beside the old code**
-  - Refs: spec 2.1, spec 2.2, spec 6.1.3, spec 6.2 examples 3, 4, 9, 17, 18, spec 6.5 items 1, 6, 7, plan 3.1, plan 3.2, plan 3.3, plan 3.4, risk 9, tests 8–12
+  - Refs: spec 2.1, spec 2.2, spec 6.1.3, spec 6.2 examples 3, 4, 9, 17–20, spec 6.5 items 1, 6, 7, plan 3.1, plan 3.2, plan 3.3, plan 3.4, risk 9, tests 8–12
   - Depends on: T8
   - Done when:
     - `Engine/Board.cs`, `Engine/Move.cs` and `Engine/MoveGenerator.cs` exist as in plan section 3.3. No existing code calls them yet.
     - Tests 8–11 pass.
-    - Test 12 passes. Its only differences between old and new are the known defects, and each one is listed in the pull request.
+    - Test 12 passes. Its only differences between old and new are defects 1 and 10, and each one is listed in the pull request.
   - Verify: the standard test command
-  - Notes: Do not change the house rules (spec 2.1). Captures stay optional, a chain may stop after any jump, and a man cannot capture a king.
+  - Notes: Do not change the house rules (spec 2.1). Captures stay optional, a chain may stop after any jump, a man cannot capture a king, and a king may land back on its start square.
 
 - [ ] **T11 — Switch to the new move generator and remove the old code**
-  - Refs: spec 3 goal 4, spec 4.1 defects 1, 5, spec 6.1.4, spec 6.2 example 1, plan 3.1, plan 3.3, plan 7.1, test 12
+  - Refs: spec 3 goal 4, spec 4.1 defects 1, 5, 9, 10, spec 6.1.4, spec 6.2 examples 1, 21, plan 3.1, plan 3.3, plan 7.1, risks 9, 12, tests 12, 30
   - Depends on: T10
   - Done when:
-    - `FindMove.FindAvailableMoves` calls `MoveGenerator`, with the same signature. `PlayerTipsService` does not change.
+    - `FindMove.FindAvailableMoves` calls `MoveGenerator`, with the same signature.
+    - `PlayerTipsService` leaves out a move that ends where it began. Test 30 passes.
     - `CheckMove`, `Tree`, `KingTree` and `TreeTake` are removed, with test 12's copy of the old behaviour.
     - Each case in `CheckMoveTests` moves to `FindMoveTests`, with the same board and the same expected move.
     - No exception is used to detect the board edge.
   - Verify: the standard test command; then `git grep -n -E "CheckMove|KingTree|TreeTake" -- "*.cs"` finds only the moved test names, if any
-  - Notes: The old search still runs after this task, on the new generator.
+  - Notes: The old search still runs after this task, on the new generator. Its board update clears the square before it writes the piece (`AutomatedPlayerServiceV2.cs:114`, and V3), so a move that ends where it began keeps the king.
 
 - [ ] **T12 — Add the remaining validation and the no-move error**
   - Refs: spec 3 goal 4, spec 4.1 defect 2, spec 6.1.2 rules 4–5, spec 6.1.4 item 3, spec 6.1.5 item 3, spec 6.2 example 5, spec 6.5 item 2, plan 4, tests 25, 28
@@ -179,7 +188,7 @@ Goal: one move generator follows the house rules, defects 1, 2 and 5 are fixed, 
 Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty`, and the response-time limits are met on the live app.
 
 - [ ] **T13 — Add the alpha-beta search at a fixed depth**
-  - Refs: spec 2.1 item 6, spec 6.1.5 items 5, 7, 9, spec 6.5 item 9, plan 1.1, plan 3.1, plan 3.2, plan 3.3, tests 13, 19, 20
+  - Refs: spec 2.1 item 6, spec 6.1.5 items 5, 7, 9, spec 6.5 item 9, plan 1.1, plan 3.1, plan 3.2, plan 3.3, plan 3.7, tests 13, 19, 20
   - Depends on: T11
   - Done when:
     - `IEvaluator`, `MaterialEvaluator`, `SearchLimits`, `SearchResult` and `GameTreeSearch` exist as in plan section 3.3. No existing code calls them yet.
@@ -190,28 +199,28 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
   - Notes: Test 13 needs a plain minimax written in the test project.
 
 - [ ] **T14 — Add the time limit, iterative deepening and ties**
-  - Refs: spec 6.1.5 items 7–9, spec 6.5 items 3, 4, plan 3.3, plan 3.5, plan 4, plan 7.1, risk 10, tests 14, 16, 18
+  - Refs: spec 6.1.5 items 7–9, spec 6.5 items 3, 4, plan 3.3, plan 3.5, plan 3.7, plan 4, plan 7.1, risk 10, tests 14, 16, 18, 33
   - Depends on: T13
   - Done when:
     - The search deepens one level at a time, and stops at its limit using the injected `TimeProvider`.
     - It returns the last finished depth's move, or the first legal move if depth 1 did not finish.
-    - It keeps every move tied for the top score, as in plan section 3.5. With no tie breaker it takes the first, so a fixed-depth run always gives the same move.
+    - It keeps every move tied for the top score, as in plan section 3.5. With no tie breaker it takes the first in generator order, so a fixed-depth run always gives the same move.
     - It returns at once with one legal move, and stops on a forced win.
-    - Tests 14, 16 and 18 pass, and tests 13 and 19 still pass.
+    - Tests 14, 16, 18 and 33 pass, and tests 13 and 19 still pass.
   - Verify: the standard test command
   - Notes:
 
 - [ ] **T15 — Add the transposition table, quiescence and the first Hard evaluation**
-  - Refs: spec 2.1 items 1, 4, spec 6.1.5 item 6, plan 3.1, plan 3.5, plan 3.6, risk 10
+  - Refs: spec 2.1 items 1, 4, spec 6.1.5 item 6, plan 3.1, plan 3.5, plan 3.6, plan 3.7, risk 10, tests 31, 32
   - Depends on: T14
   - Done when:
-    - `TranspositionTable` exists, with one table for each search and 64-bit keys compared in full.
+    - `TranspositionTable` exists as in plan section 3.7, with one table for each search and 64-bit keys compared in full.
     - `PositionalEvaluator` uses the first values in plan section 3.5.
     - Quiescence runs when `UsesQuiescence` is true, and allows standing pat.
-    - Tests 13, 14 and 19 still pass with the table on.
-    - New tests cover a position in the middle of an exchange, standing pat where a capture is bad, and each feature of `PositionalEvaluator`.
+    - Tests 13, 14 and 19 still pass with the table on, and tests 31 and 32 pass.
+    - The depth reached with the table is measured locally on the positions in plan section 3.6, and the result is in the pull request.
   - Verify: the standard test command
-  - Notes: The values are tuned in T21.
+  - Notes: The values are tuned in T21. Plan section 3.7 says why the table uses only an exact depth match.
 
 - [ ] **T16 — Add `ComputerPlayer` and the search settings**
   - Refs: spec 6.1.5 items 1, 2, 4–7, spec 6.2 example 16, spec 6.4 item 1, plan 2, plan 3.2, plan 3.3, plan 3.4, tests 7, 15, 17, 23
@@ -219,6 +228,7 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
   - Done when:
     - The `Difficulty` enum, `SearchOptions` and `ComputerPlayer` exist as in plan sections 2 and 3.3. No function calls them yet.
     - Easy uses the rule from `AutomatedPlayerServiceV1`, Normal uses `MaterialEvaluator`, and Hard uses `PositionalEvaluator`.
+    - Production uses `Random.Shared` (plan 3.3).
     - A bad setting stops start-up.
     - Tests 7, 15, 17 and 23 pass.
   - Verify: the standard test command
@@ -229,9 +239,10 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
   - Depends on: T12, T16
   - Done when:
     - GetNextMove takes `Difficulty` and `Board`, with `Version` as the fallback. `Depth` and `Player` have no effect, and the web app's current request still works.
+    - `DifficultyJsonConverter` exists, and the error messages match plan section 4.
     - `AutomatedPlayerServiceV1`, `V2` and `V3`, `IAutomatedPlayerService`, `MinimaxOutcome` and `PotentialNextMove` are removed.
     - The misspelled `Intstance` namespace is gone.
-    - The `Evaluate` and `GetAvailableBoards` tests move as in plan section 7.1.
+    - The `Evaluate` tests move, and `GetAvailableBoardsTest` is deleted, as in plan section 7.1.
     - Test 3 now checks the stage 2 message for `Version: 9` (spec 6.2 example 6). Example 15 is also covered through the function.
     - Tests 21, 22, 26 and 27 pass.
   - Verify: the standard test command; then `git grep -n -E "Intstance|AutomatedPlayerServiceV[123]" -- "*.cs"` returns nothing
@@ -281,7 +292,7 @@ Goal: each level is measurably stronger than the one below it, and the definitio
     - Hard scores at least 80% against Normal, and Normal at least 90% against Easy, over 200 games for each pairing.
     - The owner has played each level, and is happy with how each one feels.
   - Verify: the command in plan section 7.4, with the `--time-scale` from T18; the scores go in the pull request
-  - Notes: A change to Normal's depth is decided with the owner (plan 7.4). If a time limit or the evaluation changes much, repeat the speed check in T18.
+  - Notes: A change to Normal's depth is decided with the owner (plan 7.4). Repeat the speed check in T18 if a time limit changes, or if the new evaluation adds a feature that costs more than one pass over the board.
 
 - [ ] **T22 — Check the definition of done**
   - Refs: spec 9
@@ -290,6 +301,7 @@ Goal: each level is measurably stronger than the one below it, and the definitio
     - Each item in spec section 9 has its evidence listed in the pull request.
     - Each worked example in spec section 6.2 is matched to its automated test.
     - The Azure cost so far is checked against spec section 6.4, item 5.
+    - The speed evidence from T18 still applies to the final code, or the check has been repeated.
   - Verify: the standard test command; then the list above, in the pull request
   - Notes: When this task is ticked, suggest running `/retrospective`.
 

@@ -26,7 +26,7 @@ The owner built the game in memory of their grandad, who died in 2020. The game 
 
 1. Captures are optional. A player may make a normal move when a capture is available.
 2. A multi-jump may stop after any jump. Most players continue, but they do not have to.
-3. Men move and capture diagonally forward only. Kings move and capture one square diagonally in any direction. There are no "flying" kings.
+3. Men move and capture diagonally forward only. Kings move and capture one square diagonally in any direction. There are no "flying" kings. During a capture chain, a king may land back on the square where the chain started, because it has left that square. The owner confirmed this on 2026-11-04.
 4. A man can capture only men. It cannot capture a king. A king can capture both men and kings.
 5. A man that reaches the far row becomes a king.
 6. **The end of the game.** After every move, the web app checks both players:
@@ -136,7 +136,7 @@ Checked in the Azure portal on 2026-11-02:
 | --- | --- | --- |
 | `DraughtsGameFunction` | The two HTTP functions | .NET 6, in-process model, `Microsoft.NET.Sdk.Functions` 4.0.1 |
 | `DraughtsGameFunctionModels` | Request and response models | .NET Standard 2.0. References the Functions SDK, but does not need it. |
-| `DraughtsGameFunctionService` | Move generation and the three opponents | .NET Standard 2.0. Normal and Hard are copies of the same minimax code, with different scoring. No pruning. |
+| `DraughtsGameFunctionService` | Move generation and the three opponents | .NET Standard 2.0. References the Functions SDK, but does not need it. Normal and Hard are copies of the same minimax code, with different scoring. No pruning. |
 | `DraughtsGameFunctionTests` | MSTest unit tests | .NET 6, MSTest 2.2.7. A few tests, mainly for the starting board. |
 | `.github/workflows` | CI/CD | Empty. No automated build, test or deployment. |
 
@@ -156,6 +156,10 @@ Checked in the Azure portal on 2026-11-02:
    `AutomatedPlayerServiceV2.cs:45` (and V3) keeps the last of several equal moves. The same opening gives the same game every time.
 7. **Duplicated search code.** V2 and V3 contain the same minimax and board-update code.
 8. **Misspelled namespace.** `DraughtsGameFunctionService.Intstance`.
+9. **A king chain that goes round in a loop crashes the process.**
+   `DraughtsGameFunctionService/Helpers/CheckMove.cs:145` (and the other directions) blocks only the immediate reverse jump. A probe confirmed the result: a player 2 king at (7,4), with player 1 men at (6,3), (4,1), (4,3), (2,1) and (2,3), ends in a stack overflow, which the code cannot catch. An anonymous request can cause it, and so can the search.
+10. **The API stops a king landing back on its start square.**
+    The king stays on the board while the code works out a chain, so the square does not count as empty. A probe confirmed this: a king at (1,2), with opponent men at (2,3), (4,3), (4,1) and (2,1), stops after 3 jumps. The web app lets a human's king make the 4th jump (section 2.1, item 3).
 
 ---
 
@@ -266,7 +270,7 @@ Response, HTTP 200:
    ```
 
 7. `Difficulty` accepts the names `easy`, `normal` and `hard`, in any letter case. It does not accept numbers.
-8. While `Version` is accepted, it accepts the numbers 1, 2 and 3 only, with the meanings in section 2.3. It is read only when `Difficulty` is missing. If both are present, `Difficulty` is used.
+8. While `Version` is accepted, it accepts the numbers 1, 2 and 3 only, with the meanings in section 2.3. Its value is used only when `Difficulty` is missing. If both are present, `Difficulty` is used. A `Version` that is not a number is rejected, even when `Difficulty` is present, because the body cannot be read.
 9. The GetPotentialMoves request does not change.
 
 #### 6.1.2 Request validation
@@ -275,11 +279,11 @@ A request is not valid when any of these is true. Each rule starts at the stage 
 
 | # | Rule | From |
 | --- | --- | --- |
-| 1 | The body is not JSON, or a required field is missing. | Stage 1. Already true today. |
+| 1 | The body is not JSON, is the JSON value `null`, or has no `Board`. | Stage 1 |
 | 2 | `Board` is not 8 rows of 8 values. | Stage 1. Today the board type cannot hold rows of different lengths, so such a board is already rejected. This rule keeps that behaviour. |
 | 3 | The body is larger than 10 KB (section 6.4, item 7). | Stage 1 |
 | 4 | `Board` contains a value other than 0 to 6. | Stage 2 at the latest. It may start earlier, with the move-generation fixes. |
-| 5 | For GetPotentialMoves: `TipFor` is not 1 or 2. | Stage 2 at the latest. It may start earlier, with the move-generation fixes. |
+| 5 | For GetPotentialMoves: `TipFor` is missing, or is not 1 or 2. | Stage 2 at the latest. It may start earlier, with the move-generation fixes. Until then, a missing `TipFor` returns an empty list, as it does today. |
 | 6 | For GetNextMove: neither `Difficulty` nor `Version` is present, or the one that is used has a value not allowed by section 6.1.1. The message lists the allowed values, for example `Difficulty must be one of: easy, normal, hard`. | Stage 2. In stage 1, an unknown `Version` is rejected as it is today (section 5.1). |
 
 The API does not check where pieces stand. For example, a piece on a light square is not rejected.
@@ -295,18 +299,21 @@ THE SYSTEM SHALL generate the legal moves for a player using the house rules in 
 5. A piece cannot be captured twice in the same chain.
 6. Normal moves are legal even when a capture is available.
 7. When a man reaches the far row, it becomes a king and the move ends.
+8. During a capture chain, the square where the king started counts as empty, so the king may land on it (section 2.1, item 3). A move can therefore end on the square where it began.
+9. Two chains with the same start, the same end and the same captured pieces are one legal move.
 
 #### 6.1.4 Move tips (GetPotentialMoves)
 
-1. THE SYSTEM SHALL return every square that a piece of the `TipFor` player can finish a legal move on (section 6.1.3), including every stop point of a capture chain.
+1. THE SYSTEM SHALL return every square that a piece of the `TipFor` player can finish a legal move on (section 6.1.3), including every stop point of a capture chain, except as item 4 says.
 2. Each square SHALL appear once.
 3. WHEN the player has no legal move, THE SYSTEM SHALL return an empty list with `successful: true`.
+4. THE SYSTEM SHALL NOT return a square where a piece stands. So a king's own square is not a tip, even when a chain can end there. The web app writes its highlight over every square in the list (section 2.2, value 6), and that would remove the king from the board.
 
 #### 6.1.5 Computer move (GetNextMove)
 
 Items 1 and 2 apply from stage 1. Item 3 applies once defect 2 (section 4.1) is fixed. Items 4 to 9 describe the new search, and apply from stage 2 (section 6.1.1, item 5). Until then, the current search runs, and uses `Depth` as it does today.
 
-1. THE SYSTEM SHALL return one legal move (section 6.1.3) for player 2.
+1. THE SYSTEM SHALL return one legal move (section 6.1.3). From stage 2, it is always for player 2. In stage 1, Easy still plays as the player in the request (section 4.1, defect 4).
 2. `takes` SHALL list every piece captured by that move.
 3. WHEN player 2 has no legal move, THE SYSTEM SHALL return HTTP 400 with an `errorMessage` that says so.
 4. **Easy:** THE SYSTEM SHALL choose a random capture when one or more captures are available, and a random move otherwise. It does not search ahead.
@@ -323,7 +330,7 @@ Items 1 and 2 apply from stage 1. Item 3 applies once defect 2 (section 4.1) is 
 
 ### 6.2 Worked examples
 
-`BOARD` is the starting board in section 2.2. Examples 2, 6, 7 and 10 to 16 apply from stage 2 (section 6.1.1). Examples 3 and 5 apply once defects 1 and 2 (section 4.1) are fixed. The others apply from stage 1.
+`BOARD` is the starting board in section 2.2. Examples 2, 6, 7 and 10 to 16 apply from stage 2 (section 6.1.1). Examples 3, 5 and 19 to 21 apply once defects 1, 2, 9 and 10 (section 4.1) are fixed. The others apply from stage 1.
 
 | # | Input | Expected result | Notes |
 | --- | --- | --- | --- |
@@ -345,6 +352,9 @@ Items 1 and 2 apply from stage 1. Item 3 applies once defect 2 (section 4.1) is 
 | 16 | 20 GetNextMove requests with `BOARD` at Normal, with the usual time limit and randomness | At least 2 different moves | Not in the fixed-depth test mode |
 | 17 | Player 1 man at (6,1), player 2 king at (5,2), every other dark square empty. Legal moves for player 1. | 1 move: (5,0) with no capture | A man cannot capture a king. Checked against the current code. |
 | 18 | Player 1 king at (6,1), player 2 king at (5,2), every other dark square empty. Legal moves for player 1. | 4 moves: (5,0), (7,0) and (7,2) with no captures, and (4,3) capturing (5,2) | A king can capture a king. Checked against the current code. |
+| 19 | Player 2 king at (1,2), player 1 men at (2,3), (4,3), (4,1) and (2,1), every other dark square empty. Legal moves for player 2. | 9 moves: (0,1) and (0,3) with no captures; (3,4) capturing (2,3); (5,2) capturing (2,3), (4,3); (3,0) capturing (2,3), (4,3), (4,1); (3,0) capturing (2,1); (5,2) capturing (2,1), (4,1); (3,4) capturing (2,1), (4,1), (4,3); and (1,2) capturing all four | The chain may end where it began, and both directions give that one move. Worked out by a short script. |
+| 20 | Player 2 king at (7,4), player 1 men at (6,3), (4,1), (4,3), (2,1) and (2,3), every other dark square empty. Legal moves for player 2. | 9 moves, with no crash and no piece captured twice: (6,5) with no capture, then 8 capture moves. The longest is (5,2) capturing all five. | Today this crashes the process (section 4.1, defect 9). Worked out by a short script. |
+| 21 | GetPotentialMoves on the board in example 19, `TipFor: 2` | 5 squares: (0,1), (0,3), (3,0), (3,4), (5,2). Not (1,2). | Section 6.1.4, item 4 |
 
 ### 6.3 Outcomes
 
@@ -352,6 +362,7 @@ Items 1 and 2 apply from stage 1. Item 3 applies once defect 2 (section 4.1) is 
 | --- | --- |
 | HTTP 200, `successful: true` | The result is in `nextMove` or `potentialMoves`. |
 | HTTP 400, `successful: false` | The request was not valid, or the computer has no legal move. `errorMessage` says which. |
+| HTTP 500, `successful: false` | An unexpected fault. `errorMessage` is a general message, with no internal detail. In stage 1 this includes a fault in the current search, such as a missing `Depth`. Today those return HTTP 400. The web app shows the same general message for both. |
 
 ### 6.4 Non-functional requirements
 
@@ -401,7 +412,7 @@ Items 1 and 2 apply from stage 1. Item 3 applies once defect 2 (section 4.1) is 
 4. Several moves share the top score. Normal and Hard choose one of them at random (section 6.1.5, item 7). In the fixed-depth test mode, the choice is not random (section 6.1.5, item 9).
 5. From stage 2, `Depth` or `Player` is sent with any value, including a missing, negative or very large value. It has no effect (section 6.1.1, item 5).
 6. A capture chain where the man reaches the far row (section 6.1.3, item 7).
-7. A king capture chain that could loop back near its starting square (section 6.1.3, item 5).
+7. A king capture chain that loops, or that ends on its starting square (section 6.1.3, items 5 and 8, and section 6.2, examples 19 and 20).
 8. Several requests at the same time. Requests share no state, so each one is independent. They share one instance (section 6.4, item 5), and each search still stops at its time limit.
 9. A move that leaves player 2's own pieces with no moves. The search treats it as a loss (section 2.1, item 6).
 
@@ -432,7 +443,7 @@ None. All questions were resolved with the owner on 2026-11-02.
 * A merge to `master` deploys automatically, and a failing test stops the deployment.
 * No deployment credential is stored in the repository or in GitHub secrets.
 * The one-instance limit, the £1 alert and the £3 automatic stop are in place.
-* Every defect in section 4.1 is fixed, and defects 1 to 4 each have a regression test.
+* Every defect in section 4.1 is fixed, and defects 1 to 4, 9 and 10 each have a regression test.
 * Every worked example in section 6.2 passes as an automated test.
 * The response-time limits in section 6.4, item 1 are met on the live app, by the check that item describes.
 * The strength targets in section 6.4, item 3 are met by an automated computer-against-computer run.
