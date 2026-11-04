@@ -14,7 +14,7 @@ Deliver in four steps, each one safe to ship alone. The first step is the only o
 | Step | Scope | Spec |
 | --- | --- | --- |
 | 1. Platform | Port the code to .NET 10 on the isolated worker model with no change to the search. Add CI/CD. Create the new resources in UK South, with the cost limits. Switch the web app's URL, then delete the old resources. | Stage 1 in section 6.1.1. Goals 1 to 3. |
-| 2. Move generation | Replace the tree and exception code with one generator. Fix defects 1, 2 and 5. Add the remaining board and `TipFor` validation. | Sections 6.1.2 to 6.1.4 |
+| 2. Move generation | Replace the tree and exception code with one generator. Fix defects 1, 2, 5, 9 and 10. Add the remaining board and `TipFor` validation. | Sections 6.1.2 to 6.1.4 |
 | 3. Search | Add one shared search in place of the copied V2 and V3 code, with `Difficulty`. | Stage 2. Section 6.1.5. Goal 5. |
 | 4. Levels | Finish the Hard evaluation. Add the self-play tool, tune, and meet the strength targets. | Section 6.4, item 3. Goal 6. |
 
@@ -53,6 +53,7 @@ Chosen: build the new app side by side, then switch the web app's URL (spec sect
 | `Search__HardTimeLimitMs` | `1000` | Spec section 6.4, item 1. Not secret. |
 | `AzureWebJobsStorage` | Set by `az functionapp create` | **Secret** (connection string). Stored in the app's settings in Azure. Locally, `UseDevelopmentStorage=true` in the git-ignored `local.settings.json`. |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Set when Application Insights is linked | Not read locally. Without it, logs go to the `func start` console. |
+| `FUNCTIONS_WORKER_RUNTIME` | `dotnet-isolated` | Set by `az functionapp create` in Azure. Locally, in the git-ignored `local.settings.json`. |
 
 The `Search` settings bind to a typed options class, validated at startup, with the defaults above in code. So a limit can be tuned in Azure with no deployment, as spec section 6.4, item 1 requires.
 
@@ -94,15 +95,25 @@ Removed in step 3: `AutomatedPlayerServiceV1`, `V2`, `V3`, `IAutomatedPlayerServ
 
 ### 3.2 Existing code to follow or reuse
 
-* `PicktimeAutomation/PicktimeAutomation.AzureFunctions/Program.cs` — host setup: `FunctionsApplication.CreateBuilder`, `ConfigureFunctionsWebApplication`, then middleware.
-* `PicktimeAutomation/.../Middleware/ExceptionHandlingMiddleware.cs` — the one place for unexpected errors.
-* `PicktimeAutomation/.../Extensions/TelemetryExtensions.cs` — the OpenTelemetry exporter, and the setting that stops it dropping logs.
-* `PicktimeAutomation/.../AzureFunctionsTests/TestHttp.cs` — tests that call a function with a plain `DefaultHttpContext`.
-* `PicktimeAutomation/.github/workflows/build-and-deploy.yml` — the workflow (section 8.4).
-* `DraughtsGameFunctionService/Helpers/PieceComparer.cs` and `PlayerTipsService` — stay as they are.
+In the PicktimeAutomation repository, under `PicktimeAutomation/PicktimeAutomation.AzureFunctions`:
+
+* `Program.cs` — host setup: `FunctionsApplication.CreateBuilder`, `ConfigureFunctionsWebApplication`, then middleware.
+* `Middleware/ExceptionHandlingMiddleware.cs` — the one place for unexpected errors.
+* `Extensions/TelemetryExtensions.cs` — the OpenTelemetry exporter, and the setting that stops it dropping logs.
+* `host.json` and `appsettings.json` — where each log setting goes (section 5).
+
+Also in the PicktimeAutomation repository:
+
+* `TestHttp.cs` in the Functions test project — tests that call a function with a plain `DefaultHttpContext`.
+* `.github/workflows/build-and-deploy.yml` — the workflow (section 8.4).
+
+In this repository:
+
+* `DraughtsGameFunctionService/Helpers/PieceComparer.cs` — stays as it is.
 * `AutomatedPlayerServiceV1` — its choice rule moves to `ComputerPlayer` for Easy (spec section 6.1.5, item 4).
 * `AutomatedPlayerServiceV2.Evaluate` — its scoring (man 1, king 2) becomes `MaterialEvaluator`.
-* The depth prototype (section 3.6) is not in the repository. Its design for the move generator, the end-of-game check and the search is the starting point for the engine.
+
+The depth prototype (section 3.6) is not in the repository. Section 3.7 records the design it tested.
 
 ### 3.3 Interfaces and contracts
 
@@ -116,7 +127,8 @@ internal static class RequestReader
     public const int MaximumBodyBytes = 10 * 1024; // spec section 6.4, item 7
 
     // Reads at most MaximumBodyBytes + 1 bytes, so a chunked body cannot get past the limit.
-    // Returns an error message for a body that is too large or cannot be parsed.
+    // Returns an error message for a body that is too large, cannot be parsed, or is the JSON value null.
+    // So exactly one of the two results is set.
     public static async Task<(T? Request, string? Error)> ReadAsync<T>(HttpRequest request, CancellationToken ct);
 }
 ```
@@ -128,8 +140,8 @@ new JsonSerializerOptions(JsonSerializerDefaults.Web)   // camelCase out, any le
 {
     Converters =
     {
-        new BoardJsonConverter(),                                 // long[,] from rows, 8 by 8 (spec section 6.1.2, rule 2)
-        new JsonStringEnumConverter(allowIntegerValues: false),   // names only (spec section 6.1.1, item 7)
+        new BoardJsonConverter(),       // long[,] from rows, 8 by 8 (spec section 6.1.2, rule 2)
+        new DifficultyJsonConverter(),  // the three names only, in any letter case (spec section 6.1.1, item 7)
     }
 };
 ```
@@ -147,7 +159,10 @@ public static class MoveGenerator
 }
 ```
 
-`FindMove.FindAvailableMoves(long[,], long)` stays as the public entry point. It calls `MoveGenerator` and converts the result to `List<NextMove>`, so `PlayerTipsService` does not change.
+* `FindMove.FindAvailableMoves(long[,], long)` stays as the public entry point. It calls `MoveGenerator` and converts the result to `List<NextMove>`.
+* `Generate` treats the moving king's start square as empty during a chain, and returns each distinct move once (spec section 6.1.3, items 8 and 9).
+* `Apply` clears `From` before it writes `To`, so a move that ends where it began keeps the piece.
+* `PlayerTipsService` leaves out a move that ends where it began (spec section 6.1.4, item 4). This is its only change.
 
 The search, from step 3:
 
@@ -162,18 +177,22 @@ public sealed record SearchLimits(int? MaxDepth, TimeSpan? TimeLimit);
 
 public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvider, Random? tieBreaker)
 {
-    // tieBreaker null: the first of the tied moves, for the fixed-depth test mode (spec section 6.1.5, item 9).
+    // tieBreaker null: of the tied moves, the first in generator order, for the fixed-depth test mode (spec section 6.1.5, item 9).
     public SearchResult Search(int[] board, int player, SearchLimits limits);
 }
 
 public sealed record SearchResult(Move Move, int CompletedDepth, int Score);
 
+public sealed record ComputerMove(NextMove Move, int CompletedDepth); // CompletedDepth is 0 when no search ran
+
 public sealed class ComputerPlayer(IOptions<SearchOptions> options, TimeProvider timeProvider, Random random)
 {
-    // Null when player 2 has no legal move.
-    public NextMove? GetNextMove(long[,] board, Difficulty difficulty);
+    // Null when the player has no legal move. The function always passes player 2. Self-play passes either player.
+    public ComputerMove? GetNextMove(long[,] board, int player, Difficulty difficulty);
 }
 ```
+
+In production, `Random` is `Random.Shared`, because requests run at the same time (spec section 6.5, item 8) and a plain `Random` is not thread-safe. Tests pass a seeded `Random`.
 
 ### 3.4 Data model
 
@@ -193,7 +212,8 @@ Inside the engine, the board is `int[64]`, indexed by `row * 8 + column`, with t
 | Instance size | 512 MB to start | The owner confirmed this on 2026-11-04, knowing it has 0.25 of a CPU core, for the smallest cost. See risk 1 in section 9. The size can be changed with one command. | 2,048 MB is held in reserve. |
 | Execution model | Isolated worker with ASP.NET Core integration, returning `IResult` | Spec section 2.4. Same as PickTime. | — |
 | Reading the board | A custom `BoardJsonConverter` that reads rows into `long[,]` | `System.Text.Json` cannot read `long[,]` (checked by probe). A converter means no model, service or test has to change in step 1, which keeps the deadline work small. It also rejects boards that are not 8 by 8. Checked by probe: the error's `Path` is `$.Board`. | `long[][]` in the models changes every test and service in the urgent step. Keeping Newtonsoft breaks "one JSON library per project". |
-| Error messages | Written by us, chosen by the JSON error's `Path` | The owner's standards forbid sending exception messages to clients. Checked by probe: `Path` is `$.Difficulty` for `3` and `"extreme"`. | Returning `ex.Message`, as the code does today. |
+| Error messages | Written by us, chosen by the JSON error's `Path`, compared ignoring letter case | The owner's standards forbid sending exception messages to clients. Checked by probe: `Path` is `$.Difficulty` for `3` and `"extreme"`, and it follows the client's letter case (`$.difficulty`). | Returning `ex.Message`, as the code does today. |
+| Reading `Difficulty` | A small `DifficultyJsonConverter` that accepts only the three names | Checked by probe: `JsonStringEnumConverter` also accepts `"easy,hard"` and `" hard "`, which spec section 6.1.1, item 7 does not allow. | `JsonStringEnumConverter(allowIntegerValues: false)` |
 | Web API style | HTTP-triggered functions | The project is a function app | — |
 | Ties in the search | At the root, search each move with the window `(best - 1, beta)` | A plain alpha-beta window cuts off a move that only equals the best, and returns a bound, so a tie cannot be seen. One point lower makes an equal move return its exact score. The search then keeps every move with the top score, and the tie breaker picks one (spec section 6.1.5, item 7). | Shuffling the moves first does not choose fairly. Scores within a margin were rejected by the owner. |
 | Time limit | Check the clock every 1,024 positions. Abandon the unfinished depth, and use the result of the last finished depth. | A part-finished depth can return a poor move. At the measured speeds, the check runs at least every few milliseconds. | Using the best move so far from an unfinished depth is stronger, but harder to get right. Can be added later. |
@@ -226,6 +246,28 @@ So the transposition table is included from the start. The prototype did not inc
 
 Section 7.3 measures it on the real app.
 
+### 3.7 Search design
+
+`GameTreeSearch` is a negamax alpha-beta search, as the prototype tested it. A move is one ply, and a capture chain is one move.
+
+1. **End of game first.** At each node, check both players (spec section 2.1, item 6). Neither can move scores 0. A win scores `Win - ply` and a loss scores `-Win + ply`, with `Win` at 100,000, so a faster win scores higher. Evaluation scores stay well below `Win`.
+2. **Depth 0.** Return `Evaluate`, or run quiescence if `UsesQuiescence` is true.
+3. **Table lookup.** See below.
+4. **Move order.** The table's best move first, then more captures before fewer, then generator order.
+5. **Root.** Each iteration searches the root moves with the window in section 3.5, and puts the last depth's best move first. Ties are decided by generator order, not by search order, so reordering does not change the fixed-depth result.
+6. **Stopping.** Stop when the time limit passes (section 3.5), at the maximum depth, or when a finished depth finds a forced win.
+
+**Transposition table.**
+* It has 2^18 entries. Each holds the full 64-bit key, the score, the remaining depth, the bound (exact, lower or upper) and the best move. The slot is always replaced.
+* The key is a Zobrist hash of the pieces and the side to move. Values 5 and 6 hash the same, as both are empty.
+* A win or loss score is stored relative to the node, not the root: add the ply on the way in, and subtract it on the way out. Otherwise, a stored score reports the wrong distance to the win.
+* An entry's score is used only when its depth equals the remaining depth exactly. An entry from a deeper search would be stronger, but it would give a different score from plain fixed-depth minimax, and test 13 could not then check the search. The prototype used any equal or greater depth, so section 3.6's figures may be a little high. Measure the effect when the table is added.
+* The best move is used for ordering at any depth.
+
+**Quiescence.** At depth 0, for Hard only:
+* The score starts at `Evaluate`, because standing pat is legal when captures are optional.
+* Search only capture moves from there, with no depth limit other than the ply cap. Quiescence results are not stored in the table.
+
 ---
 
 ## 4. Error handling
@@ -233,16 +275,19 @@ Section 7.3 measures it on the real app.
 | Situation | Behaviour |
 | --- | --- |
 | Body larger than 10 KB | 400, `The request body must be 10 KB or smaller.` |
-| Body is not JSON | 400, `The request body is not valid JSON.` |
+| Body is not JSON, or is the JSON value `null` | 400, `The request body is not valid JSON.` |
 | JSON error with path `$.Board`, or `Board` missing | 400, `Board must be 8 rows of 8 values.` |
 | JSON error with path `$.Difficulty` | 400, `Difficulty must be one of: easy, normal, hard` |
+| JSON error with path `$.Version`, from stage 2 | 400, `Version must be 1, 2 or 3.`, even when `Difficulty` is valid (spec section 6.1.1, item 8) |
+| JSON error with path `$.TipFor`, from step 2 | 400, `TipFor must be 1 or 2.` |
+| JSON error at any other path | 400, `The request body is not valid JSON.` |
 | Unknown `Version`, stage 1 | 400, `No version in body of request`, as today (spec section 5.1) |
 | Neither `Difficulty` nor `Version`, stage 2 | 400, `Difficulty is missing. It must be one of: easy, normal, hard` |
 | Invalid `Version`, stage 2 | 400, `Version must be 1, 2 or 3.` |
 | Board value outside 0 to 6, from step 2 | 400, `Board values must be from 0 to 6.` |
-| `TipFor` not 1 or 2, from step 2 | 400, `TipFor must be 1 or 2.` |
+| `TipFor` missing, or not 1 or 2, from step 2 | 400, `TipFor must be 1 or 2.` |
 | Player 2 has no legal move, from step 2 | 400, `Player 2 has no legal moves.` |
-| Player 2 has no legal move, in step 1 only | The old code throws a null reference, so the middleware returns 500, not today's 400. The web app shows the same general message for both. Accepted for this short period. |
+| Player 2 has no legal move, or `Depth` is missing or 0, in step 1 only | The old code throws a null reference, so the middleware returns 500, not today's 400 (spec section 6.3). The web app shows the same general message for both, and it always sends a `Depth`. Accepted for this short period. |
 | Time limit reached during a search | Not an error. Returns the best move from the last finished depth. |
 | Time limit reached before depth 1 finishes | Not an error. Returns the first legal move. Only possible on an extremely overloaded instance. |
 | Any other exception | The middleware logs it and returns 500 with `successful: false` and `An unexpected error occurred.` The body keeps the same shape as other responses, so the web app handles it normally. |
@@ -257,8 +302,18 @@ All 400 and 500 responses use the existing response models (spec section 6.3).
 As spec section 6.4, item 6 requires, and no more.
 
 * A small middleware logs one line for each request, at Information level, from `RequestLoggingMiddleware` only: `"{Route} returned {StatusCode} in {DurationMs} ms"`. PickTime showed that named placeholders reach `customDimensions`.
-* All other categories log at Warning and above. Set in `host.json`.
+* All other categories log at Warning and above.
 * Errors are logged by the exception middleware.
+
+The Functions host and the .NET worker log separately, so each setting goes in its own file. PickTime's plan, section 5.2, records this.
+
+| File | Setting |
+| --- | --- |
+| `appsettings.json` | Worker log levels: `Default` at `Warning`, and `RequestLoggingMiddleware`'s full category name at `Information`. |
+| `host.json` | `"telemetryMode": "OpenTelemetry"`, and `functionTimeout` of 5 minutes. The Flex Consumption default is 30 minutes, and until step 3 a request with a large `Depth` can run for that long, long after the 230-second HTTP limit. The host's own categories are also kept at `Warning`. Check that this does not hide the request line in the local console. |
+
+Other points:
+
 * The exporter's limit of 5 traces per second is turned off, as in PickTime, or the response-time check would lose records.
 * The workspace's daily cap is 0.1 GB (section 8.1).
 
@@ -282,6 +337,8 @@ The difficulty is not logged by default. The check in section 7.3 runs each leve
 | Authentication | Anonymous, as spec section 5.3. The computer's moves and the rules are public. |
 | CORS | `https://ollierumbol.github.io` only, set on the function app. Blocks other sites in a browser, but not direct calls, which is why the cost limits exist. |
 | Deployment | OpenID Connect through a user-assigned managed identity. No stored secret. The ids are repository variables. |
+| Publishing credentials | SCM and FTP basic authentication are off on the function app, as in PickTime. So no publish profile works. |
+| HTTPS | HTTPS Only is on, as in PickTime. |
 | Deployment rights | Website Contributor on the function app only, if that is enough for a Flex deployment (risk 6 in section 9) |
 | Automatic stop rights | The Logic App's system-assigned identity has Website Contributor on the function app only |
 | Storage account key | The default connection string in app settings. It is not in the repository. The account holds only the deployment package and host data. Moving to identity-based access is a possible later improvement. |
@@ -300,7 +357,7 @@ The difficulty is not logged by default. The check in section 7.3 runs each leve
 * MSTest, as the project uses today, on the current version. PickTime's versions are the starting point.
 * Tests call the functions directly with a `DefaultHttpContext`, and read the JSON that is written (`TestHttp`, from PickTime). The isolated host has no in-memory test server.
 * Every worked example in spec section 6.2 is an automated test.
-* The existing tests stay. In step 2, `CheckMoveTests` tests classes that are removed, so each case moves to `FindMoveTests` with the same board and the same expected move. In step 3, the `Evaluate` and `GetAvailableBoards` tests move the same way.
+* The existing tests stay. In step 2, `CheckMoveTests` tests classes that are removed, so each case moves to `FindMoveTests` with the same board and the same expected move. In step 3, the `Evaluate` tests move the same way. `GetAvailableBoardsTest` is empty, so it is deleted, and tests of `Apply` replace it.
 * Tests do not call real Azure.
 * A fake `TimeProvider` tests the time limit, so the test does not depend on the machine's speed.
 
@@ -316,11 +373,11 @@ The difficulty is not logged by default. The check in section 7.3 runs each leve
 | 6 | Unexpected exception gives 500, a generic message and no exception text | 6.3 | Internal detail leaks to clients |
 | 7 | Search options bind and validate from configuration | 6.4 item 1 | A bad setting is only found during a game |
 | 8 | Worked examples 3, 4, 17, 18 give exactly the listed moves and captures | 6.2, 6.1.3 | Defect 1, and any change to the house rules |
-| 9 | A king chain that could loop back captures no piece twice | 6.1.3 item 5, 6.5 #7 | Double capture |
+| 9 | Examples 19 and 20: a chain can end on its start square, both directions give one move, a loop ends with no piece captured twice, and `Apply` keeps the piece when `From` equals `To` | 6.1.3 items 5, 8, 9, 6.5 #7, 6.2 #19, #20 | Defects 9, 10, double capture, a king lost from the board |
 | 10 | A man reaching the far row ends its chain and is promoted | 6.1.3 item 7 | Chain carries on as a king |
 | 11 | Value 6 squares behave as empty | 6.2 #9 | Highlighted squares block moves |
-| 12 | Old and new generators agree on a fixed set of positions, except for the known defects. Run once, in step 2, before the old code is removed. | 6.1.3 | A rule lost in the rewrite |
-| 13 | Search at fixed depth gives the same move as plain minimax on a fixed set of positions | 6.1.5 | A pruning bug |
+| 12 | Old and new generators agree on a fixed set of positions, except for defects 1 and 10. No position has a king loop, because defect 9 crashes the old code. Run once, in step 2, before the old code is removed. | 6.1.3 | A rule lost in the rewrite |
+| 13 | Search at fixed depth gives the same score and the same move as plain minimax on a fixed set of positions, with the first tied move in generator order for both | 6.1.5 | A pruning or table bug |
 | 14 | A position where two moves tie exactly returns both over repeated runs. A lower-scoring move is never returned. | 6.1.5 item 7 | Alpha-beta hides ties |
 | 15 | Example 16: 20 Normal moves from the start give at least 2 different moves | 6.2 #16 | Defect 6 |
 | 16 | Fake clock passes the limit: the search stops, and returns the last finished depth's move | 6.1.5 item 8 | Search overruns |
@@ -328,21 +385,27 @@ The difficulty is not logged by default. The check in section 7.3 runs each leve
 | 18 | One legal move returns with no search | 6.2 #15 | Wasted time |
 | 19 | A forced win in 1 is chosen over a forced win in 3. The slowest loss is chosen when every move loses. | 6.1.5 item 7 | Search misses or delays a win |
 | 20 | Both end-of-game rules at a leaf, including a move that leaves the mover with no moves | 2.1 item 6, 6.5 #9 | AI disagrees with the screen |
-| 21 | Examples 10 to 14: `Difficulty` letter case, numbers rejected, both fields, neither field | 6.2 | Contract errors |
+| 21 | Examples 10 to 14: `Difficulty` letter case, numbers rejected, both fields, neither field. Also `{"difficulty":3}` gets the `Difficulty` message, `"easy,hard"` and `" hard "` are rejected, and `Version: "abc"` with a valid `Difficulty` is rejected. | 6.2, 6.1.1 items 2, 7, 8 | Contract errors |
 | 22 | Example 7: `Depth: 50` has no effect | 6.2 #7, defect 3 | Client controls the cost |
 | 23 | Easy always takes a capture when one exists | 6.1.5 item 4 | Easy loses its one rule |
 | 24 | One self-play game at small depth runs to an end | 6.4 item 3 | The tool hangs or the draw rule fails |
 | 25 | Example 5: no legal move for player 2 returns 400, and the message says so | 6.2 #5 | Defect 2 |
 | 26 | From stage 2, a request with `Player: 1` at each level still returns a player 2 move | 6.1.5 item 1, 6.5 #5 | Defect 4 |
 | 27 | Example 2: `Difficulty: "normal"` returns a legal player 2 move from row 2 to row 3 | 6.2 #2 | The new contract fails |
-| 28 | A board value of 7, and `TipFor: 3`, return 400 | 6.1.2 rules 4, 5 | Bad input reaches the engine |
+| 28 | A board value of 7, `TipFor: 3`, `TipFor: "abc"` and a missing `TipFor` return 400 | 6.1.2 rules 4, 5 | Bad input reaches the engine |
+| 29 | A body that is not JSON, the JSON value `null`, a missing `Board` and `{"board":"x"}` return 400 with the messages in section 4 | 6.1.2 rule 1 | A bad request gets a 500 |
+| 30 | Example 21: the tips leave out the king's own square | 6.1.4 item 4, 6.2 #21 | A highlight removes a king in the web app |
+| 31 | Quiescence: a position in the middle of an exchange scores as the exchange ends, and Hard stands pat where the only capture loses material | 6.1.5 item 6, 2.1 item 1 | Hard misjudges exchanges, or forces a bad capture |
+| 32 | `PositionalEvaluator`: one test for each feature in section 3.5, and the score for one player is the negative of the other's | 6.1.5 item 6 | A feature has no effect, or has the wrong sign |
+| 33 | A forced win stops the search before the time limit, with a fake clock that does not advance | 6.1.5 item 7 | Time wasted after a win is found |
+| 34 | The exporter's settings, read from the real registration, and no exporter without a connection string | 6.4 item 6 | Logs are dropped without warning |
 
 ### 7.3 Checks on the live app
 
 Run by hand, with results in the pull request.
 
 1. **Contract.** Replay the requests in spec section 5 against the new URL, and compare with the captured responses.
-2. **Full game.** Play a full game at each level in the web app.
+2. **Full game.** Before the switch, a script plays a game at each level, calling the new URL directly, because CORS blocks a local copy of the web app. After the release, the owner plays a full game at each level on the live site.
 3. **Speed.** Spec section 6.4, item 1. A short script sends the warm-up, then 30 requests for each level from fixed positions, with a pause between levels. It also records `CompletedDepth` while a temporary log line is on, so we learn the real depth on Azure. The line is removed afterwards (spec section 6.4, item 6).
 4. **Concurrency.** Send 12 requests at once to see how the single instance behaves (risk 2).
 
@@ -371,13 +434,13 @@ All in UK South (spec section 6.4, item 4). Names are proposals, and the functio
 | --- | --- | --- | --- | --- |
 | Resource group | `rg-draughts-game` | — | No charge | — |
 | Function app and plan | `func-draughts-game` | Flex Consumption, on demand, 512 MB, maximum 1 instance, no always-ready instances | 250,000 executions and 100,000 GB-s a month, per subscription, shared with PickTime | 0.5 GB-s a request at the 1 s billing minimum. The grant covers about 200,000 requests, or about 3,000 games. |
-| Storage account | `stdraughtsgame` | Standard LRS | None | About £0.10 a month. Approved by the owner on 2026-11-02. |
+| Storage account | `stdraughtsgame`, which must also be free across Azure | Standard LRS | None | About £0.10 a month. Approved by the owner on 2026-11-02. |
 | Application Insights | `appi-draughts-game` | Workspace-based | No charge itself | — |
 | Log Analytics workspace | `log-draughts-game` | Per GB, with a daily cap of 0.1 GB | 5 GB a month, per billing account | About 1 KB a request |
 | Managed identity | `id-draughts-game-deploy` | User-assigned | No charge | — |
 | Budget, alert | `budget-alert` | £1 a month, on the resource group, actual and forecast | Budgets are free | Email only |
 | Budget, stop | `budget-stop` | £3 a month, on the resource group | Budgets are free | Calls the action group below |
-| Action group | `ag-draughts-game-stop` | — | Check when created | Runs only if the £3 budget is reached |
+| Action group | `ag-draughts-game-stop` | Webhook action | 100,000 webhooks a month, from the Azure Monitor pricing page, read on 2026-11-04 | One webhook, only if the £3 budget is reached |
 | Logic App | `la-draughts-game-stop` | Consumption | First 4,000 actions free | 2 actions a run. Metered per run, so nothing while idle. |
 
 Figures were checked on 2026-11-02 and 2026-11-04, on the Azure pricing pages. The Log Analytics and budget figures come from PickTime's plan, checked on 2026-10-06. Check them again when creating the resources.
@@ -388,17 +451,36 @@ Figures were checked on 2026-11-02 and 2026-11-04, on the Azure pricing pages. T
 
 Created once, by hand, with the Azure CLI, as PickTime does. The pipeline only deploys code, so its identity stays narrow. These commands are the record. They need the owner's `az login`, and they change a real subscription.
 
+Check first that the region offers what the plan needs. No document has confirmed this yet:
+
+```bash
+az functionapp list-flexconsumption-locations --runtime dotnet-isolated -o table
+az functionapp list-flexconsumption-runtimes --location uksouth --runtime dotnet-isolated -o table
+```
+
+Then create the resources. The workspace and `appi-draughts-game` come before the function app:
+
 ```bash
 az group create -n rg-draughts-game -l uksouth
+az monitor log-analytics workspace create -n log-draughts-game -g rg-draughts-game -l uksouth --quota 0.1
+```
+
+Create `appi-draughts-game` in the portal, workspace-based, in UK South, on `log-draughts-game`. Then:
+
+```bash
 az storage account create -n stdraughtsgame -g rg-draughts-game -l uksouth --sku Standard_LRS
-az functionapp create -n func-draughts-game -g rg-draughts-game --storage-account stdraughtsgame --flexconsumption-location uksouth --runtime dotnet-isolated --runtime-version 10.0 --instance-memory 512 --maximum-instance-count 1
+az functionapp create -n func-draughts-game -g rg-draughts-game --storage-account stdraughtsgame --flexconsumption-location uksouth --runtime dotnet-isolated --runtime-version 10.0 --instance-memory 512 --maximum-instance-count 1 --app-insights appi-draughts-game --https-only true
 az functionapp scale config set -n func-draughts-game -g rg-draughts-game --trigger-type http --trigger-settings perInstanceConcurrency=8
 az functionapp cors add -n func-draughts-game -g rg-draughts-game --allowed-origins https://ollierumbol.github.io
+az resource update -g rg-draughts-game --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/func-draughts-game --set properties.allow=false
+az resource update -g rg-draughts-game --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/func-draughts-game --set properties.allow=false
 ```
+
+**`--app-insights` matters.** Without it, or `--disable-app-insights true`, `az functionapp create` makes its own Application Insights resource (CLI help, version 2.90.0). That resource could send logs to a workspace in a default resource group, outside the daily cap and outside both budgets, which cover only `rg-draughts-game`.
 
 The higher concurrency (the default at 512 MB is 4) is on purpose. With one instance, a request above the limit may wait or be rejected. A search that shares the CPU still stops on time, at a lower depth, so sharing is better than rejecting. Section 7.3 tests this.
 
-Application Insights, the workspace with its daily cap, and the identity with its federated credential follow PickTime's steps. The federated credential subject is `repo:OllieRumbol/DraughtsGameFunction:ref:refs/heads/master`.
+The identity and its federated credential follow PickTime's steps. The subject is `repo:OllieRumbol/DraughtsGameFunction:ref:refs/heads/master`. The portal may offer GitHub's immutable subject form instead. Check which form this repository's OpenID Connect setting sends, and use that one, as PickTime had to.
 
 ### 8.3 Automatic stop
 
@@ -411,7 +493,9 @@ As spec section 6.4, item 5 requires. No code is added to the app.
 
 To restart: `az functionapp start -n func-draughts-game -g rg-draughts-game`.
 
-This is tested once by running the Logic App by hand, confirming that the app stops and the web app shows its general message, and then restarting. The budget cannot be tested without spending £3, so the link from the budget to the action group is checked with the portal's configuration view. Budget data can lag by several hours (spec section 2.6).
+This is tested once by running the Logic App by hand, confirming that the app stops, and restarting it. The web app's general message is checked the same way after the release, because until then the web app does not call this app. The budget cannot be tested without spending £3, so the link from the budget to the action group is checked with the portal's configuration view.
+
+The stop is not immediate. Cost data is typically available within 8 to 24 hours, and budgets are evaluated every 24 hours ([Create and manage budgets](https://learn.microsoft.com/azure/cost-management-billing/costs/tutorial-acm-create-budgets), read on 2026-11-04). So the bill can pass £3 by up to about two days of use before the app stops. One instance limits this.
 
 A runbook in Azure Automation was rejected: it needs an extra account and script for what is one HTTP call.
 
@@ -444,10 +528,11 @@ The web app's code has been unchanged since its last release in March 2022 (the 
 **Steps:**
 
 1. The new app passes the checks in section 7.3, steps 1 and 2, with the URL called directly.
-2. On a new branch from `origin/main` of `draughtsgame`, change the two URLs in `src/logic/api.js`, and merge it to `main`. The owner has uncommitted work on another branch there, which stays untouched.
-3. Ask the owner, then release from a clean copy of `main`, with `npm install`, then `npm run deploy` with `NODE_OPTIONS=--openssl-legacy-provider` set. The owner's git login on this machine does the push.
-4. Watch the new app's logs, and play a game.
-5. After a few days with no problems, ask the owner to confirm, then delete `DraughtsGameFunction20210321121511ResourceGroup` (spec section 9). Rollback until then: restore the old URL.
+2. On a new branch from `origin/main` of `draughtsgame`, change the two URLs in `src/logic/api.js`. The owner has uncommitted work on another branch there, which stays untouched.
+3. Ask the owner, then merge the branch to `main`. Ask before the merge, because the old workflow may publish at that point (risk 3).
+4. Release from a clean copy of `main`, with `npm install`, then `npm run deploy` with `NODE_OPTIONS=--openssl-legacy-provider` set. The owner's git login on this machine does the push.
+5. Watch the new app's logs, and play a full game at each level on the live site.
+6. After a few days with no problems, ask the owner to confirm, then delete `DraughtsGameFunction20210321121511ResourceGroup` (spec section 9). Rollback until then: restore the old URL.
 
 ---
 
@@ -463,6 +548,7 @@ The web app's code has been unchanged since its last release in March 2022 (the 
 | 6 | Website Contributor may not be enough for a Flex package deployment. Microsoft's docs name this role for other plans, but not clearly for Flex. | Medium | Find out on the first deployment. If it fails, use the narrowest role that works, on this app only, and record it. |
 | 7 | The 10 November date slips. | Medium | Step 1 is kept small. The old app should keep running, unsupported. |
 | 8 | Normal at depth 6 is too strong for casual players, or Hard misses the 80% target. | Medium | Depth is a setting. Self-play and the owner's own games decide. |
-| 9 | Move generation changes the moves the web app expects. The web app has its own move validation and does not call this API to check a player's move. | Low | Test 12 compares old and new. The only intended differences are the defect fixes. The king capture fix means tips can show a move the web app's own code already allows. |
+| 9 | Move generation changes the moves the web app expects. The web app has its own move validation and does not call this API to check a player's move. | Low | Test 12 compares old and new. The only intended differences are the defect fixes. The king capture fix means tips can show a move the web app's own code already allows. The web app handles a computer move that ends where it began (`CompleteBoard.js`, `player2Go`, read on 2026-11-04). It would not handle a tip on the king's own square, so test 30 covers that. |
 | 10 | The transposition table returns a wrong score after a hash collision. | Low | 64-bit keys compared in full. The chosen move is still checked against the legal moves at the root. |
 | 11 | The local tests and the Linux runner differ. | Low | Tests run in CI on Linux, and locally on Windows. Project references use the existing casing. |
+| 12 | Defect 9 can crash the new app from its first deployment until the new generator goes live in step 2. An anonymous request can cause it, and so can the search in a rare position. | Low | The old app has the same defect today. Step 2 removes it. |
