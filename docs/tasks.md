@@ -48,7 +48,7 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
   - Notes: Nullable stays off for old code (plan 3.5). The 500 response for "no legal move" is accepted until T12 (plan 4).
     - For T2: `func start` warns that `dotnet run` is the preferred way to start an isolated project. `local.settings.json` now sets `dotnet-isolated` on this machine.
     - For T17: `RequestReader.MessageFor` treats a `JsonException` with an inner exception as broken JSON, so that a body cut off inside the board does not get the board message. Keep this when adding the `Difficulty`, `Version` and `TipFor` paths. The functions stay static, creating services with `new`, until T17.
-    - Open for the owner: `JsonSerializerDefaults.Web` accepts `"Version": "2"`, which spec 6.1.1 item 8 does not allow. Plan 3.3 sets these options, so T1 follows the plan.
+    - For T17: the owner approved strict number reading on 2026-11-04 (plan 3.3). Until then, `"Version": "2"` is accepted, as it is today.
     - Evidence: this task's pull request.
 
 - [ ] **T2 — Add the error handling and request logging**
