@@ -45,7 +45,10 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - Move generation and the search are unchanged, and the existing tests pass with no change to what they check.
     - Tests 1–5 and 29 pass.
   - Verify: the standard test command; then `dotnet list DraughtsGameFunction.sln package --vulnerable --include-transitive` reports no vulnerable package; then `dotnet list DraughtsGameFunction.sln package --deprecated` and `--outdated`, with the result in the pull request
-  - Notes: This task has the deadline, so keep it to the port. Nullable stays off for old code (plan 3.5). The 500 response for "no legal move" is accepted until T12 (plan 4).
+  - Notes: Nullable stays off for old code (plan 3.5). The 500 response for "no legal move" is accepted until T12 (plan 4).
+    - For T2: `func start` warns that `dotnet run` is the preferred way to start an isolated project. `local.settings.json` now sets `dotnet-isolated` on this machine.
+    - For T17: `RequestReader.MessageFor` treats a `JsonException` with an inner exception as broken JSON, so that a body cut off inside the board does not get the board message. Keep this when adding the `Difficulty`, `Version` and `TipFor` paths. The functions stay static, creating services with `new`, until T17 adds dependency injection.
+    - Evidence: this task's pull request.
 
 - [ ] **T2 — Add the error handling and request logging**
   - Refs: spec 6.3, spec 6.4 item 6, plan 2, plan 3.2, plan 4, plan 5, tests 6, 34
