@@ -242,7 +242,7 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
   - Depends on: T12, T16
   - Done when:
     - GetNextMove takes `Difficulty` and `Board`, with `Version` as the fallback. `Depth` and `Player` have no effect, and the web app's current request still works.
-    - `DifficultyJsonConverter` exists, and the error messages match plan section 4.
+    - `DifficultyJsonConverter` exists, the shared JSON options read numbers strictly as in plan section 3.3, and the error messages match plan section 4.
     - `AutomatedPlayerServiceV1`, `V2` and `V3`, `IAutomatedPlayerService`, `MinimaxOutcome` and `PotentialNextMove` are removed.
     - The misspelled `Intstance` namespace is gone.
     - The `Evaluate` tests move, and `GetAvailableBoardsTest` is deleted, as in plan section 7.1.

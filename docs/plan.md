@@ -138,6 +138,7 @@ The shared JSON options:
 ```csharp
 new JsonSerializerOptions(JsonSerializerDefaults.Web)   // camelCase out, any letter case in
 {
+    NumberHandling = JsonNumberHandling.Strict,  // from step 3: the web defaults also read "2" as a number (spec section 6.1.1, item 8)
     Converters =
     {
         new BoardJsonConverter(),       // long[,] from rows, 8 by 8 (spec section 6.1.2, rule 2)
@@ -386,7 +387,7 @@ The difficulty is not logged by default. The check in section 7.3 runs each leve
 | 18 | One legal move returns with no search | 6.2 #15 | Wasted time |
 | 19 | A forced win in 1 is chosen over a forced win in 3. The slowest loss is chosen when every move loses. | 6.1.5 item 7 | Search misses or delays a win |
 | 20 | Both end-of-game rules at a leaf, including a move that leaves the mover with no moves | 2.1 item 6, 6.5 #9 | AI disagrees with the screen |
-| 21 | Examples 10 to 14: `Difficulty` letter case, numbers rejected, both fields, neither field. Also `{"difficulty":3}` gets the `Difficulty` message, `"easy,hard"` and `" hard "` are rejected, and `Version: "abc"` with a valid `Difficulty` is rejected. | 6.2, 6.1.1 items 2, 7, 8 | Contract errors |
+| 21 | Examples 10 to 14: `Difficulty` letter case, numbers rejected, both fields, neither field. Also `{"difficulty":3}` gets the `Difficulty` message, `"easy,hard"` and `" hard "` are rejected, `Version: "abc"` with a valid `Difficulty` is rejected, and `Version: "2"` and `TipFor: "1"` are rejected. | 6.2, 6.1.1 items 2, 7, 8 | Contract errors |
 | 22 | Example 7: `Depth: 50` has no effect | 6.2 #7, defect 3 | Client controls the cost |
 | 23 | Easy always takes a capture when one exists | 6.1.5 item 4 | Easy loses its one rule |
 | 24 | One self-play game at small depth runs to an end | 6.4 item 3 | The tool hangs or the draw rule fails |
