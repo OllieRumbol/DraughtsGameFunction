@@ -35,7 +35,7 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
 
 **Deadline:** T1 to T8 are done before 10 November 2026 (spec 2.4). T9 can follow after that date.
 
-- [ ] **T1 — Port the solution to .NET 10 on the isolated worker**
+- [x] **T1 — Port the solution to .NET 10 on the isolated worker**
   - Refs: spec 2.4, spec 3 goal 1, spec 4, spec 5, spec 6.1.1 items 1–3 and 5, spec 6.1.2 rules 1–3, spec 6.3, spec 6.4 items 7–8, plan 3.1, plan 3.2, plan 3.3, plan 3.5, plan 4, plan 7.1, tests 1–5, 29
   - Depends on: —
   - Done when:
@@ -47,7 +47,11 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - Move generation and the search are unchanged, and the existing tests pass with no change to what they check.
     - Tests 1–5 and 29 pass.
   - Verify: the standard test command; then `dotnet list DraughtsGameFunction.sln package --vulnerable --include-transitive` reports no vulnerable package; then `dotnet list DraughtsGameFunction.sln package --deprecated` and `--outdated`, with the result in the pull request
-  - Notes: This task has the deadline, so keep it to the port. Nullable stays off for old code (plan 3.5). The 500 response for "no legal move" is accepted until T12 (plan 4).
+  - Notes: Nullable stays off for old code (plan 3.5). The 500 response for "no legal move" is accepted until T12 (plan 4).
+    - For T2: `func start` warns that `dotnet run` is the preferred way to start an isolated project. `local.settings.json` now sets `dotnet-isolated` on this machine.
+    - For T17: `RequestReader.MessageFor` treats a `JsonException` with an inner exception as broken JSON, so that a body cut off inside the board does not get the board message. Keep this when adding the `Difficulty`, `Version` and `TipFor` paths. The functions stay static, creating services with `new`, until T17.
+    - For T17: the owner approved strict number reading on 2026-11-04 (plan 3.3). Until then, `"Version": "2"` is accepted, as it is today.
+    - Evidence: this task's pull request.
 
 - [ ] **T2 — Add the error handling and request logging**
   - Refs: spec 6.3, spec 6.4 item 6, plan 2, plan 3.2, plan 4, plan 5, tests 6, 34
@@ -245,6 +249,7 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - `DifficultyJsonConverter` exists, the shared JSON options read numbers strictly as in plan section 3.3, and the error messages match plan section 4.
     - `AutomatedPlayerServiceV1`, `V2` and `V3`, `IAutomatedPlayerService`, `MinimaxOutcome` and `PotentialNextMove` are removed.
     - The misspelled `Intstance` namespace is gone.
+    - Both functions get their services through dependency injection, not `new`.
     - The `Evaluate` tests move, and `GetAvailableBoardsTest` is deleted, as in plan section 7.1.
     - Test 3 now checks the stage 2 message for `Version: 9` (spec 6.2 example 6). Example 15 is also covered through the function.
     - Tests 21, 22, 26 and 27 pass.
