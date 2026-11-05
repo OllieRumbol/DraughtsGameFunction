@@ -1,0 +1,48 @@
+name: Build and deploy
+
+on:
+  push:
+    branches: [master]
+  # No path filter. Branch protection requires the check below, and a required check that
+  # never runs would stop a documents-only pull request from merging (plan section 8.4).
+  pull_request:
+
+permissions:
+  contents: read
+
+# Runs on master wait for each other, so deploys will happen in push order. A new push to a
+# pull request cancels that pull request's older run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  SOLUTION_PATH: DraughtsGameFunction.sln
+
+jobs:
+  build:
+    # Branch protection requires a check with this exact name (plan section 8.4).
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      # NuGet Audit runs on restore. Here its vulnerability warnings are errors, so a vulnerable
+      # package stops the build (spec section 6.4, item 7). %3B is an escaped semicolon.
+      - name: Restore
+        run: dotnet restore ${{ env.SOLUTION_PATH }} -p:WarningsAsErrors=NU1901%3BNU1902%3BNU1903%3BNU1904
+
+      - name: Build
+        run: dotnet build ${{ env.SOLUTION_PATH }} --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test ${{ env.SOLUTION_PATH }} --configuration Release --no-build
