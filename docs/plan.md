@@ -277,6 +277,7 @@ Section 7.3 measures it on the real app.
 | --- | --- |
 | Body larger than 10 KB | 400, `The request body must be 10 KB or smaller.` |
 | Body is not JSON, or is the JSON value `null` | 400, `The request body is not valid JSON.` |
+| The client stops sending the body, for example by disconnecting | 400, `The request body is not valid JSON.` No error is logged, because this is not a fault in the app. |
 | JSON error with path `$.Board`, or `Board` missing | 400, `Board must be 8 rows of 8 values.` |
 | JSON error with path `$.Difficulty` | 400, `Difficulty must be one of: easy, normal, hard` |
 | JSON error with path `$.Version`, from stage 2 | 400, `Version must be 1, 2 or 3.`, even when `Difficulty` is valid (spec section 6.1.1, item 8) |
@@ -311,7 +312,7 @@ The Functions host and the .NET worker log separately, so each setting goes in i
 | File | Setting |
 | --- | --- |
 | `appsettings.json` | Worker log levels: `Default` at `Warning`, and `RequestLoggingMiddleware`'s full category name at `Information`. |
-| `host.json` | `"telemetryMode": "OpenTelemetry"`, and `functionTimeout` of 5 minutes. The Flex Consumption default is 30 minutes, and until step 3 a request with a large `Depth` can run for that long, long after the 230-second HTTP limit. The host's own categories are also kept at `Warning`. Check that this does not hide the request line in the local console. |
+| `host.json` | `"telemetryMode": "OpenTelemetry"`, and `functionTimeout` of 5 minutes. The Flex Consumption default is 30 minutes, and until step 3 a request with a large `Depth` can run for that long, long after the 230-second HTTP limit. The host's own categories are also kept at `Warning`, other than one `Function.<name>.User` entry at `Information` for each function. Without these entries, the request line does not reach the local console (checked by a local run). |
 
 Other points:
 

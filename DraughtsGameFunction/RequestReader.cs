@@ -25,7 +25,17 @@ internal static class RequestReader
         where T : class
     {
         var buffer = new byte[MaximumBodyBytes + 1];
-        var bytesRead = await ReadUpToBufferSizeAsync(request.Body, buffer, ct);
+        int bytesRead;
+
+        try
+        {
+            bytesRead = await ReadUpToBufferSizeAsync(request.Body, buffer, ct);
+        }
+        catch (BadHttpRequestException)
+        {
+            // The client stopped sending the body, for example by disconnecting. This is not a fault in the app.
+            return (null, InvalidJsonMessage);
+        }
 
         if (bytesRead > MaximumBodyBytes)
         {

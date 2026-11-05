@@ -66,7 +66,8 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
   - Verify: the standard test command; then, with Azurite running, `func start` in `DraughtsGameFunction` and a POST of the spec section 5.2 request to `http://localhost:7071/api/GetPotentialMoves` returns the four squares, and the console shows the line `returned 200 in`
   - Notes: Azurite is not on the PATH on this machine. It is at `C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\Extensions\Microsoft\Azure Storage Emulator\azurite.exe`. The git-ignored `local.settings.json` needs the settings in plan section 2.
     - `RequestLoggingMiddleware` logs right after the function, and reads the status from the returned `IResult`, because the host writes it later. So `DurationMs` leaves out writing the response. A local probe showed that logging from `Response.OnCompleted` does not reach the console.
-    - For T7: the exporter has not run against Azure. Confirm that the request line reaches Application Insights with `Route`, `StatusCode` and `DurationMs` in `customDimensions`, that each request has one line, and that the host adds no Information lines.
+    - A request cancelled through its token writes no request line, because there is no response to time. No test covers `Invoke` or the middleware order, because a fake context cannot supply the invocation result. A local run checks them.
+    - For T7: the exporter has not run against Azure. Confirm that the request line reaches Application Insights with `Route`, `StatusCode` and `DurationMs` in `customDimensions`, with one line for each request, correct statuses, and no Information lines from the host. Compare the volume with the estimate in plan 8.1, because the exporter also sends traces and metrics.
     - Evidence: this task's pull request.
 
 - [ ] **T3 — Build and test every pull request**
