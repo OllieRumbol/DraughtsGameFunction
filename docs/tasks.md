@@ -70,7 +70,7 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - For T7: the exporter has not run against Azure. Confirm that the request line reaches Application Insights with `Route`, `StatusCode` and `DurationMs` in `customDimensions`, with one line for each request, correct statuses, and no Information lines from the host. Compare the volume with the estimate in plan 8.1, because the exporter also sends traces and metrics.
     - Evidence: this task's pull request.
 
-- [ ] **T3 — Build and test every pull request**
+- [x] **T3 — Build and test every pull request**
   - Refs: spec 3 goal 2, spec 6.4 item 7, spec 9, plan 6, plan 8.4, risk 11
   - Depends on: T1
   - Done when:
@@ -79,9 +79,9 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - A pull request shows the result.
     - The owner approves, and `master` is protected as in plan section 6.
   - Verify: `gh pr checks` on this task's pull request shows the build passed. Push a temporary failing test to the branch, confirm that the check fails, then remove the test and confirm that it passes again. After the merge, `gh api repos/OllieRumbol/DraughtsGameFunction/branches/master/protection --jq '{checks: .required_status_checks.contexts, approvals: .required_pull_request_reviews.required_approving_review_count, admins: .enforce_admins.enabled, forcePush: .allow_force_pushes.enabled, deletions: .allow_deletions.enabled}'` shows the settings in plan section 6.
-  - Notes: Turn the protection on after this task's pull request merges, because the check must have run once before it can be required. It changes a repository setting, so ask the owner first.
+  - Notes: The owner approved the protection on 2026-11-05, and it is on, with the same settings as PickTime.
     - The publish and upload steps in PickTime's workflow are left out here, because only the deploy job needs them. T5 adds them.
-    - Evidence: this task's pull request for the workflow. A follow-up pull request ticks this task and holds the `gh api` result, because the protection goes on after the merge.
+    - Evidence: pull request 18 for the workflow, and this tick's follow-up pull request for the `gh api` result.
 
 - [ ] **T4 — Create the Azure resources (manual)**
   - Refs: spec 2.6, spec 6.4 items 4–5, plan 2, plan 6, plan 8.1, plan 8.2, risks 2, 4
