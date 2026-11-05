@@ -53,8 +53,8 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - For T17: the owner approved strict number reading on 2026-11-04 (plan 3.3). Until then, `"Version": "2"` is accepted, as it is today.
     - Evidence: this task's pull request.
 
-- [ ] **T2 — Add the error handling and request logging**
-  - Refs: spec 6.3, spec 6.4 item 6, plan 2, plan 3.2, plan 4, plan 5, tests 6, 34
+- [x] **T2 — Add the error handling and request logging**
+  - Refs: spec 6.3, spec 6.4 items 1, 6, plan 2, plan 3.2, plan 4, plan 5, tests 6, 34
   - Depends on: T1
   - Done when:
     - The exception middleware returns the 500 response in plan section 4, with no exception text.
@@ -65,6 +65,10 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - The app starts locally, and answers a GetPotentialMoves request with one log line.
   - Verify: the standard test command; then, with Azurite running, `func start` in `DraughtsGameFunction` and a POST of the spec section 5.2 request to `http://localhost:7071/api/GetPotentialMoves` returns the four squares, and the console shows the line `returned 200 in`
   - Notes: Azurite is not on the PATH on this machine. It is at `C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\Extensions\Microsoft\Azure Storage Emulator\azurite.exe`. The git-ignored `local.settings.json` needs the settings in plan section 2.
+    - `RequestLoggingMiddleware` logs right after the function, and reads the status from the returned `IResult`, because the host writes it later. So `DurationMs` leaves out writing the response. A local probe showed that logging from `Response.OnCompleted` does not reach the console. The owner approved this on 2026-11-05, and spec 6.4 item 1 was changed to match.
+    - A request cancelled through its token writes no request line, because there is no response to time. No test covers `Invoke` or the middleware order, because a fake context cannot supply the invocation result. A local run checks them.
+    - For T7: the exporter has not run against Azure. Confirm that the request line reaches Application Insights with `Route`, `StatusCode` and `DurationMs` in `customDimensions`, with one line for each request, correct statuses, and no Information lines from the host. Compare the volume with the estimate in plan 8.1, because the exporter also sends traces and metrics.
+    - Evidence: this task's pull request.
 
 - [ ] **T3 — Build and test every pull request**
   - Refs: spec 3 goal 2, spec 6.4 item 7, spec 9, plan 6, plan 8.4, risk 11

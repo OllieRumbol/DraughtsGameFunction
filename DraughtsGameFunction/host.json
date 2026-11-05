@@ -1,3 +1,12 @@
 {
-    "version": "2.0"
+    "version": "2.0",
+    "telemetryMode": "OpenTelemetry",
+    "functionTimeout": "00:05:00",
+    "logging": {
+        "logLevel": {
+            "default": "Warning",
+            "Function.GetNextMove.User": "Information",
+            "Function.GetPotentialMoves.User": "Information"
+        }
+    }
 }

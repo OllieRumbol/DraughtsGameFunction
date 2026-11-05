@@ -111,6 +111,27 @@ public class AutomatedPlayerTests
         TestHttp.AssertBadRequest(response, expectedMessage);
     }
 
+    // A local run showed that a client which disconnects during the upload causes this exception.
+    [TestMethod]
+    public async Task Run_ClientStopsSendingTheBody_ReturnsBadRequest()
+    {
+        var request = TestHttp.CreateRequest(string.Empty);
+        request.Body = new StoppedBodyStream();
+
+        var result = await AutomatedPlayer.Run(request, CancellationToken.None);
+        var response = await TestHttp.ExecuteAsync(result, request);
+
+        TestHttp.AssertBadRequest(response, "The request body is not valid JSON.");
+    }
+
+    private sealed class StoppedBodyStream : System.IO.MemoryStream
+    {
+        public override System.Threading.Tasks.ValueTask<int> ReadAsync(System.Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            throw new BadHttpRequestException("Unexpected end of request content.");
+        }
+    }
+
     private static string PaddedBody(int sizeInBytes)
     {
         var body = $$"""{ "Version": 1, "Board": {{TestHttp.StartingBoard}}, "Player": 2 }""";
