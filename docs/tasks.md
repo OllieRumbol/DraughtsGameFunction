@@ -68,6 +68,7 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - `RequestLoggingMiddleware` logs right after the function, and reads the status from the returned `IResult`, because the host writes it later. So `DurationMs` leaves out writing the response. A local probe showed that logging from `Response.OnCompleted` does not reach the console.
     - A request cancelled through its token writes no request line, because there is no response to time. No test covers `Invoke` or the middleware order, because a fake context cannot supply the invocation result. A local run checks them.
     - For T7: the exporter has not run against Azure. Confirm that the request line reaches Application Insights with `Route`, `StatusCode` and `DurationMs` in `customDimensions`, with one line for each request, correct statuses, and no Information lines from the host. Compare the volume with the estimate in plan 8.1, because the exporter also sends traces and metrics.
+    - Checkpoint: code, tests and reviews are done. The next step is the owner's decision on the spec 6.4 item 1 wording, because `DurationMs` leaves out writing the response. Then tick this task.
     - Evidence: this task's pull request.
 
 - [ ] **T3 — Build and test every pull request**
