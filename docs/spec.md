@@ -372,7 +372,7 @@ Items 1 and 2 apply from stage 1. Item 3 applies once defect 2 (section 4.1) is 
 
    Easy does not search, so it has no time limit. The limits are set on the server, and can be tuned without a change to the web app.
 
-   **How the limits are checked on the live app.** The logs record the whole request, which takes a little longer than the search. So the check allows a margin of 200 ms, and ignores single slow requests:
+   **How the limits are checked on the live app.** The logs record the time from the start of the request until the function returns, which takes a little longer than the search. They leave out writing the response, which is short. So the check allows a margin of 200 ms, and ignores single slow requests:
    * Send one warm-up request. Then send 30 requests for each of Normal and Hard, from several different positions.
    * At least 95% of the requests SHALL finish within the limit plus 200 ms: 700 ms for Normal and 1,200 ms for Hard. The times are read from the logs.
    * Cold starts do not count.
