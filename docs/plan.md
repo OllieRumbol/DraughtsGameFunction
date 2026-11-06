@@ -343,7 +343,7 @@ The difficulty is not logged by default. The check in section 7.3 runs each leve
 | Deployment | OpenID Connect through a user-assigned managed identity. No stored credential. The client, tenant and subscription ids are GitHub secrets, only so that GitHub masks them in this public repository's workflow logs. They are not credentials, because signing in also needs the federated trust, so spec section 6.4, item 7 still holds. The owner chose this on 2026-11-06. |
 | Publishing credentials | SCM and FTP basic authentication are off on the function app, as in PickTime. So no publish profile works. |
 | HTTPS | HTTPS Only is on, as in PickTime. |
-| Deployment rights | Website Contributor on the function app only, if that is enough for a Flex deployment (risk 6 in section 9) |
+| Deployment rights | Website Contributor on the function app only. The first deployment showed that this is enough for Flex Consumption. |
 | Automatic stop rights | The Logic App's system-assigned identity has Website Contributor on the function app only |
 | Storage account key | The default connection string in app settings. It is not in the repository. The account holds only the deployment package and host data. Moving to identity-based access is a possible later improvement. |
 | Request size | 10 KB, checked while reading, not from the `Content-Length` header |
@@ -562,7 +562,7 @@ The web app's code has been unchanged since its last release in March 2022 (the 
 | 3 | The web app's old workflow also runs when the URL change reaches `main`. It uses Node 12 and old actions, its `TOKEN` secret dates from January 2021, and no runs are listed for it. It may fail. | High | The release does not depend on it (section 8.5). A failed run stops before it publishes anything. A successful run publishes the same code. Fixing the workflow belongs to the frontend spec. |
 | 4 | A Flex regional quota in UK South blocks creation, as a Y1 quota did for PickTime. | Low | A quota request is free. Start the resources early, not on the deadline. |
 | 5 | The automatic stop fails silently, because the budget cannot be fully tested. | Low | The £1 email comes first, and the single instance limits the damage. Test the Logic App by hand (section 8.3). |
-| 6 | Website Contributor may not be enough for a Flex package deployment. The `Azure/functions-action` README names this role, scoped to the function app, but this has not been tried here. | Low | Find out on the first deployment. If it fails, use the narrowest role that works, on this app only, and record it. |
+| 6 | Website Contributor may not be enough for a Flex package deployment. | Closed | The first deployment succeeded with this role on 2026-11-06. |
 | 7 | The 10 November date slips. | Medium | Step 1 is kept small. The old app should keep running, unsupported. |
 | 8 | Normal at depth 6 is too strong for casual players, or Hard misses the 80% target. | Medium | Depth is a setting. Self-play and the owner's own games decide. |
 | 9 | Move generation changes the moves the web app expects. The web app has its own move validation and does not call this API to check a player's move. | Low | Test 12 compares old and new. The only intended differences are the defect fixes. The king capture fix means tips can show a move the web app's own code already allows. The web app handles a computer move that ends where it began (`CompleteBoard.js`, `player2Go`, read on 2026-11-04). It would not handle a tip on the king's own square, so test 30 covers that. |

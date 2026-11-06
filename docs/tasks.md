@@ -105,7 +105,7 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - For T6: until then, the single instance is the only cost limit.
     - Evidence: this task's pull request.
 
-- [ ] **T5 — Deploy on every merge to `master`**
+- [x] **T5 — Deploy on every merge to `master`**
   - Refs: spec 3 goal 2, spec 6.4 item 7, spec 9, plan 8.4, risk 6
   - Depends on: T2, T3, T4
   - Done when:
@@ -115,8 +115,9 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - The sign-in and deploy actions are pinned to commit hashes, and the job fails if the deployed app does not answer (plan 8.4).
     - Merging this task deploys the app, and the new URL answers.
   - Verify: `gh run view <id> --json jobs` on the merge's run shows the `Deploy` job succeeded, because the run's overall result stays green if a job is skipped; then a POST of the spec section 5.2 request to the new URL returns the four squares; SCM basic authentication is still off, by the command in T4; the deploy log shows the three ids masked
-  - Notes: The first deployment tests whether Website Contributor is enough for Flex Consumption (risk 6). If it is not, use the narrowest role that works, and record it in plan section 6.
-    - Checkpoint: the workflow and both reviews are done. The next step is the owner's merge, which is the first deployment. A follow-up pull request then ticks this task and holds the deploy evidence.
+  - Notes: Website Contributor is enough for Flex Consumption (risk 6 closed). The two pinned action hashes are updated by hand (plan 8.4).
+    - For T7: one POST with `Version: 9` returned an empty 404 just after the first deployment, and 15 further requests of 5 kinds were all correct. The cause is not known. Record any 404 in T7's checks.
+    - Evidence: pull request 22 for the workflow, and this tick's follow-up pull request for the deployment.
 
 - [ ] **T6 — Add the cost limits (manual)**
   - Refs: spec 6.4 items 4–5, spec 9, plan 6, plan 8.1, plan 8.3, risk 5
