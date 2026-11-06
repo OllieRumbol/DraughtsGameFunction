@@ -83,7 +83,7 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - The publish and upload steps in PickTime's workflow are left out here, because only the deploy job needs them. T5 adds them.
     - Evidence: pull request 18 for the workflow, and this tick's follow-up pull request for the `gh api` result.
 
-- [ ] **T4 — Create the Azure resources (manual)**
+- [x] **T4 — Create the Azure resources (manual)**
   - Refs: spec 2.6, spec 6.4 items 4–6, plan 2, plan 6, plan 8.1, plan 8.2, risks 2, 4
   - Depends on: —
   - Done when:
@@ -98,8 +98,12 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - The app's logs go to `appi-draughts-game`, and creating the app made no second Application Insights resource or new default resource group.
     - The identity has its federated credential and its role on this app only, with the subject form this repository sends.
     - `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID` are GitHub secrets (plan 6).
-  - Verify: `az resource list -g rg-draughts-game --query "[].{name:name,location:location}" -o table` shows every resource in UK South, and only one Application Insights resource; `az group list --query "[?starts_with(name,'DefaultResourceGroup')].name"` shows no group that was not on the list from before the work; `az functionapp scale config show -n func-draughts-game -g rg-draughts-game` shows the instance limits; `az functionapp cors show -n func-draughts-game -g rg-draughts-game` shows one origin; `az functionapp show -n func-draughts-game -g rg-draughts-game --query httpsOnly` shows `true`; `az resource show -g rg-draughts-game --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/func-draughts-game --query properties.allow`, and the same with `--name ftp`, show `false`; `az monitor log-analytics workspace show -n log-draughts-game -g rg-draughts-game --query workspaceCapping.dailyQuotaGb` shows `0.1`; `az identity federated-credential list --identity-name id-draughts-game-deploy -g rg-draughts-game --query "[].subject"` shows the subject in plan 8.2; `az role assignment list --assignee <the identity's principal id> --all --query "[].{role:roleDefinitionName,scope:scope}"` shows one role, on this app; `gh secret list` shows the three names; the portal shows `appi-draughts-game` linked to the app
-  - Notes: Needs the owner's `az login`. This is a public repository, so do not put an id or a connection string in this file or a pull request, including when pasting command output.
+  - Verify: `az resource list -g rg-draughts-game --query "[].{name:name,location:location}" -o table` shows every resource in UK South, and only one Application Insights resource; `az group list --query "[?starts_with(name,'DefaultResourceGroup')].name"` shows no group that was not on the list from before the work; `az functionapp scale config show -n func-draughts-game -g rg-draughts-game` shows the instance limits; `az functionapp cors show -n func-draughts-game -g rg-draughts-game` shows one origin; `az resource show -g rg-draughts-game -n func-draughts-game --resource-type Microsoft.Web/sites --query properties.httpsOnly` shows `true`; `az resource show -g rg-draughts-game --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/func-draughts-game --query properties.allow`, and the same with `--name ftp`, show `false`; `az monitor log-analytics workspace show -n log-draughts-game -g rg-draughts-game --query workspaceCapping.dailyQuotaGb` shows `0.1`; `az identity federated-credential list --identity-name id-draughts-game-deploy -g rg-draughts-game --query "[].subject"` shows the subject in plan 8.2; `az role assignment list --assignee <the identity's principal id> --all --query "[].{role:roleDefinitionName,scope:scope}"` shows one role, on this app; `gh secret list` shows the three names; the portal shows `appi-draughts-game` linked to the app
+  - Notes: The owner created the resources in the portal on 2026-11-06, and Claude checked them read-only (plan 8.2). The owner's `az login` needs `--tenant`, because the default directory has no subscription.
+    - This is a public repository, so do not put an id or a connection string in this file or a pull request, including when pasting command output.
+    - For T5: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID` have only their names checked. A wrong value fails at the first sign-in.
+    - For T6: until then, the single instance is the only cost limit.
+    - Evidence: this task's pull request.
 
 - [ ] **T5 — Deploy on every merge to `master`**
   - Refs: spec 3 goal 2, spec 6.4 item 7, spec 9, plan 8.4, risk 6
@@ -122,7 +126,7 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - The Logic App's identity has its role on this app only.
     - The Logic App, run by hand, stops the function app. The app is then started again and answers.
     - The Logic App's trigger URL is not in the repository.
-  - Verify: `az functionapp show -n func-draughts-game -g rg-draughts-game --query state` shows `Stopped` after the manual run and `Running` after the restart; the link from the budget to the action group is checked in the portal
+  - Verify: `az resource show -g rg-draughts-game -n func-draughts-game --resource-type Microsoft.Web/sites --query properties.state` shows `Stopped` after the manual run and `Running` after the restart; the link from the budget to the action group is checked in the portal
   - Notes: Budgets and the action group are global (spec 6.4 item 4), so create the action group with its default location.
 
 - [ ] **T7 — Check the new app directly (manual)**
