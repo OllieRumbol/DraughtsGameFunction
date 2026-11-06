@@ -10,14 +10,19 @@ on:
 permissions:
   contents: read
 
-# Runs on master wait for each other, so deploys will happen in push order. A new push to a
-# pull request cancels that pull request's older run.
+# A running deploy is never cancelled. If several merges queue, only the newest waits, so the
+# newest code deploys. A new push to a pull request cancels that pull request's older run.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   SOLUTION_PATH: DraughtsGameFunction.sln
+  FUNCTION_PROJECT_PATH: DraughtsGameFunction/DraughtsGameFunction.csproj
+  FUNCTION_APP_NAME: func-draughts-game
+  FUNCTION_APP_URL: https://func-draughts-game-chhwarhkf4hphjf0.uksouth-01.azurewebsites.net
+  PUBLISH_DIRECTORY: publish
+  ARTIFACT_NAME: function-app
 
 jobs:
   build:
@@ -37,7 +42,7 @@ jobs:
           dotnet-version: 10.0.x
 
       # NuGet Audit runs on restore. Here its vulnerability warnings are errors, so a vulnerable
-      # package stops the build (spec section 6.4, item 7). %3B is an escaped semicolon.
+      # package stops the build and never deploys (spec section 6.4, item 7). %3B is an escaped semicolon.
       - name: Restore
         run: dotnet restore ${{ env.SOLUTION_PATH }} -p:WarningsAsErrors=NU1901%3BNU1902%3BNU1903%3BNU1904
 
@@ -46,3 +51,57 @@ jobs:
 
       - name: Test
         run: dotnet test ${{ env.SOLUTION_PATH }} --configuration Release --no-build
+
+      - name: Publish
+        run: dotnet publish ${{ env.FUNCTION_PROJECT_PATH }} --configuration Release --no-build --output ${{ env.PUBLISH_DIRECTORY }}
+
+      - name: Upload the published app
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.PUBLISH_DIRECTORY }}
+          # The isolated worker needs the hidden .azurefunctions folder.
+          include-hidden-files: true
+          if-no-files-found: error
+
+  deploy:
+    name: Deploy
+    needs: build
+    # The federated credential trusts only the subject of a push to master (plan section 8.2).
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Do not add environment:. A job with an environment sends a different subject, and the sign-in fails.
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download the published app
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.PUBLISH_DIRECTORY }}
+
+      # Secrets, so that GitHub masks the three ids in this public repository's logs (plan section 6).
+      # Pinned to a commit, because this job holds a sign-in token (plan section 8.4). Update by hand.
+      - name: Sign in to Azure with OpenID Connect
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to the Function App
+        uses: Azure/functions-action@c5060b3b8bb1ebbcb531abd00c822ecbaa8ea656 # v1.5.7
+        with:
+          app-name: ${{ env.FUNCTION_APP_NAME }}
+          package: ${{ env.PUBLISH_DIRECTORY }}
+
+      # A deployment can succeed while the functions do not start. The retries allow for a cold start.
+      - name: Check that the deployed app answers
+        run: |
+          curl --fail --silent --show-error --retry 10 --retry-delay 15 --retry-all-errors --max-time 60 \
+            --request POST "${{ env.FUNCTION_APP_URL }}/api/GetPotentialMoves" \
+            --header "Content-Type: application/json" \
+            --data '{"Board":[[0,2,0,2,0,2,0,2],[2,0,2,0,2,0,2,0],[0,2,0,2,0,2,0,2],[5,0,5,0,5,0,5,0],[0,5,0,5,0,5,0,5],[1,0,1,0,1,0,1,0],[0,1,0,1,0,1,0,1],[1,0,1,0,1,0,1,0]],"TipFor":1}' \
+            | grep --quiet '"successful":true'

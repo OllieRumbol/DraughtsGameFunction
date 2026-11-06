@@ -112,9 +112,11 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - The build job also has PickTime's publish and upload steps, including `include-hidden-files`.
     - The workflow has a deploy job that runs only on a push to `master`, and needs the build job, so a failing test stops the deployment.
     - It signs in with OpenID Connect, and no credential is stored in the repository or in GitHub secrets. The three Azure ids come from `secrets.`, and are not credentials (plan 6).
+    - The sign-in and deploy actions are pinned to commit hashes, and the job fails if the deployed app does not answer (plan 8.4).
     - Merging this task deploys the app, and the new URL answers.
-  - Verify: `gh run list --branch master --limit 1` shows the deploy succeeded after the merge; then a POST of the spec section 5.2 request to the new URL returns the four squares; SCM basic authentication is still off, by the command in T4; the deploy log shows the three ids masked
+  - Verify: `gh run view <id> --json jobs` on the merge's run shows the `Deploy` job succeeded, because the run's overall result stays green if a job is skipped; then a POST of the spec section 5.2 request to the new URL returns the four squares; SCM basic authentication is still off, by the command in T4; the deploy log shows the three ids masked
   - Notes: The first deployment tests whether Website Contributor is enough for Flex Consumption (risk 6). If it is not, use the narrowest role that works, and record it in plan section 6.
+    - Checkpoint: the workflow and both reviews are done. The next step is the owner's merge, which is the first deployment. A follow-up pull request then ticks this task and holds the deploy evidence.
 
 - [ ] **T6 — Add the cost limits (manual)**
   - Refs: spec 6.4 items 4–5, spec 9, plan 6, plan 8.1, plan 8.3, risk 5
