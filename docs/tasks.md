@@ -2,7 +2,7 @@
 
 > **What this document is for:** It answers *what do we do next?* It splits the approved design into small, verifiable steps and tracks progress against them.
 
-Last updated: 2026-11-04
+Last updated: 2026-11-06
 
 <!--
 How to use this file
@@ -49,7 +49,7 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
   - Verify: the standard test command; then `dotnet list DraughtsGameFunction.sln package --vulnerable --include-transitive` reports no vulnerable package; then `dotnet list DraughtsGameFunction.sln package --deprecated` and `--outdated`, with the result in the pull request
   - Notes: Nullable stays off for old code (plan 3.5). The 500 response for "no legal move" is accepted until T12 (plan 4).
     - For T2: `func start` warns that `dotnet run` is the preferred way to start an isolated project. `local.settings.json` now sets `dotnet-isolated` on this machine.
-    - For T17: `RequestReader.MessageFor` treats a `JsonException` with an inner exception as broken JSON, so that a body cut off inside the board does not get the board message. Keep this when adding the `Difficulty`, `Version` and `TipFor` paths. The functions stay static, creating services with `new`, until T17.
+    - For T12 and T17: `RequestReader.MessageFor` treats a `JsonException` with an inner exception as broken JSON, so that a body cut off inside the board does not get the board message. This is too broad once the `TipFor` and `Version` paths are added. Plan 3.5 says which inner exceptions count. The functions stay static, creating services with `new`, until T17.
     - For T17: the owner approved strict number reading on 2026-11-04 (plan 3.3). Until then, `"Version": "2"` is accepted, as it is today.
     - Evidence: this task's pull request.
 
@@ -84,11 +84,12 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - Evidence: pull request 18 for the workflow, and this tick's follow-up pull request for the `gh api` result.
 
 - [ ] **T4 — Create the Azure resources (manual)**
-  - Refs: spec 2.6, spec 6.4 items 4–5, plan 2, plan 6, plan 8.1, plan 8.2, risks 2, 4
+  - Refs: spec 2.6, spec 6.4 items 4–6, plan 2, plan 6, plan 8.1, plan 8.2, risks 2, 4
   - Depends on: —
   - Done when:
-    - The region check in plan section 8.2 shows that UK South offers Flex Consumption with .NET 10. If it does not, stop and tell the owner, because the spec requires UK South.
+    - The region check in plan section 8.2 shows that UK South offers Flex Consumption with .NET 10. If it does not, stop and tell the owner, because the spec requires UK South. The list of default resource groups from before the work is kept for the check below.
     - The resources in plan section 8.1 exist, other than the budgets, the action group and the Logic App. The final names and the new URL are recorded in plan section 8.1.
+    - The smart detection rule and action group that Application Insights creates are deleted, if they exist, as plan section 8.1 says.
     - The allowances in plan section 8.1 were checked again on the Azure pricing pages. Any change is recorded in the plan.
     - The app has a maximum of 1 instance, 512 MB and a per-instance concurrency of 8.
     - HTTPS Only is on, and SCM and FTP basic authentication are off.
@@ -96,9 +97,9 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - The workspace's daily cap is 0.1 GB.
     - The app's logs go to `appi-draughts-game`, and creating the app made no second Application Insights resource or new default resource group.
     - The identity has its federated credential and its role on this app only, with the subject form this repository sends.
-    - `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID` are repository variables.
-  - Verify: `az resource list -g rg-draughts-game --query "[].{name:name,location:location}" -o table` shows every resource in UK South, and only one Application Insights resource; `az group list --query "[?starts_with(name,'DefaultResourceGroup')].name"` shows no new group; `az functionapp scale config show -n func-draughts-game -g rg-draughts-game` shows the instance limits; `az functionapp cors show -n func-draughts-game -g rg-draughts-game` shows one origin; `az functionapp show -n func-draughts-game -g rg-draughts-game --query httpsOnly` shows `true`; the portal shows `appi-draughts-game` linked to the app
-  - Notes: Needs the owner's `az login`. It can start before T1 if time gets short, because a quota problem takes time to solve (risk 4). This is a public repository, so do not put the subscription ID or any connection string in this file or a pull request.
+    - `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID` are GitHub secrets (plan 6).
+  - Verify: `az resource list -g rg-draughts-game --query "[].{name:name,location:location}" -o table` shows every resource in UK South, and only one Application Insights resource; `az group list --query "[?starts_with(name,'DefaultResourceGroup')].name"` shows no group that was not on the list from before the work; `az functionapp scale config show -n func-draughts-game -g rg-draughts-game` shows the instance limits; `az functionapp cors show -n func-draughts-game -g rg-draughts-game` shows one origin; `az functionapp show -n func-draughts-game -g rg-draughts-game --query httpsOnly` shows `true`; `az resource show -g rg-draughts-game --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/func-draughts-game --query properties.allow`, and the same with `--name ftp`, show `false`; `az monitor log-analytics workspace show -n log-draughts-game -g rg-draughts-game --query workspaceCapping.dailyQuotaGb` shows `0.1`; `az identity federated-credential list --identity-name id-draughts-game-deploy -g rg-draughts-game --query "[].subject"` shows the subject in plan 8.2; `az role assignment list --assignee <the identity's principal id> --all --query "[].{role:roleDefinitionName,scope:scope}"` shows one role, on this app; `gh secret list` shows the three names; the portal shows `appi-draughts-game` linked to the app
+  - Notes: Needs the owner's `az login`. This is a public repository, so do not put an id or a connection string in this file or a pull request, including when pasting command output.
 
 - [ ] **T5 — Deploy on every merge to `master`**
   - Refs: spec 3 goal 2, spec 6.4 item 7, spec 9, plan 8.4, risk 6
@@ -106,9 +107,9 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
   - Done when:
     - The build job also has PickTime's publish and upload steps, including `include-hidden-files`.
     - The workflow has a deploy job that runs only on a push to `master`, and needs the build job, so a failing test stops the deployment.
-    - It signs in with OpenID Connect, and no credential is stored in the repository or in GitHub secrets.
+    - It signs in with OpenID Connect, and no credential is stored in the repository or in GitHub secrets. The three Azure ids come from `secrets.`, and are not credentials (plan 6).
     - Merging this task deploys the app, and the new URL answers.
-  - Verify: `gh run list --branch master --limit 1` shows the deploy succeeded after the merge; then a POST of the spec section 5.2 request to the new URL returns the four squares; SCM basic authentication is still off
+  - Verify: `gh run list --branch master --limit 1` shows the deploy succeeded after the merge; then a POST of the spec section 5.2 request to the new URL returns the four squares; SCM basic authentication is still off, by the command in T4; the deploy log shows the three ids masked
   - Notes: The first deployment tests whether Website Contributor is enough for Flex Consumption (risk 6). If it is not, use the narrowest role that works, and record it in plan section 6.
 
 - [ ] **T6 — Add the cost limits (manual)**
@@ -122,16 +123,17 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - The Logic App, run by hand, stops the function app. The app is then started again and answers.
     - The Logic App's trigger URL is not in the repository.
   - Verify: `az functionapp show -n func-draughts-game -g rg-draughts-game --query state` shows `Stopped` after the manual run and `Running` after the restart; the link from the budget to the action group is checked in the portal
-  - Notes: Budgets have no region. `az monitor action-group create` takes `--location`, so set it to UK South if the service accepts that. If it does not, stop and propose a change to spec section 6.4, item 4.
+  - Notes: Budgets and the action group are global (spec 6.4 item 4), so create the action group with its default location.
 
 - [ ] **T7 — Check the new app directly (manual)**
-  - Refs: spec 5, spec 6.4 item 2, plan 7.3 steps 1 and 4, plan 8.5 step 1, risks 1, 2
+  - Refs: spec 5, spec 6.4 items 2, 6, plan 5, plan 7.3 steps 1, 2, 4, 5, plan 8.5 step 1, risks 1, 2, 12
   - Depends on: T5
   - Done when:
     - The requests in spec section 5 give the captured responses from the new URL.
-    - A scripted game, calling the new URL directly, plays to its end at Versions 1, 2 and 3 with the depths the web app sends. Each move is legal.
-    - The response times at depth 4 and depth 5 are recorded and compared with the live app's. A warm-up request comes first.
-    - 12 requests at once are sent, and the result is recorded.
+    - A scripted game plays at Versions 1, 2 and 3, as plan 7.3 step 2 says. Each game finishes, and each move passes the script's check.
+    - The response times at depth 4 and depth 5 are recorded and compared with the live app's, using client-side timings for both. A warm-up request comes first, and its time is recorded as the cold start.
+    - 12 requests at once are sent, and each client-side time and status code is recorded.
+    - The logs pass the check in plan 7.3 step 5.
   - Verify: the results above, in the pull request. The owner decides whether the speed is good enough to switch.
   - Notes: The full game in the web app comes in T8 (plan 7.3 step 2). If the speed is too slow, moving to 2,048 MB needs the owner's approval (risk 1).
 
@@ -187,7 +189,7 @@ Goal: one move generator follows the house rules, defects 1, 2, 5, 9 and 10 are 
   - Notes: The old search still runs after this task, on the new generator. Its board update clears the square before it writes the piece (`AutomatedPlayerServiceV2.cs:114`, and V3), so a move that ends where it began keeps the king.
 
 - [ ] **T12 — Add the remaining validation and the no-move error**
-  - Refs: spec 3 goal 4, spec 4.1 defect 2, spec 6.1.2 rules 4–5, spec 6.1.4 item 3, spec 6.1.5 item 3, spec 6.2 example 5, spec 6.5 item 2, plan 4, tests 25, 28
+  - Refs: spec 3 goal 4, spec 4.1 defect 2, spec 6.1.2 rules 4–5, spec 6.1.4 item 3, spec 6.1.5 item 3, spec 6.2 example 5, spec 6.5 item 2, plan 3.5, plan 4, tests 25, 28
   - Depends on: T11
   - Done when:
     - A board value outside 0 to 6, and a `TipFor` that is not 1 or 2, return the messages in plan section 4.
@@ -249,7 +251,7 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
   - Notes:
 
 - [ ] **T17 — Switch GetNextMove to the new contract and remove the old services**
-  - Refs: spec 3 goal 5, spec 4.1 defects 3, 4, 6, 7, 8, spec 6.1.1 items 5–8, spec 6.1.2 rule 6, spec 6.2 examples 2, 6, 7, 10–15, spec 6.5 item 5, plan 3.1, plan 3.4, plan 4, plan 7.1, tests 21, 22, 26, 27
+  - Refs: spec 3 goal 5, spec 4.1 defects 3, 4, 6, 7, 8, spec 6.1.1 items 5–8, spec 6.1.2 rule 6, spec 6.2 examples 2, 6, 7, 10–15, spec 6.5 item 5, plan 3.1, plan 3.3, plan 3.4, plan 3.5, plan 4, plan 7.1, tests 21, 22, 26, 27
   - Depends on: T12, T16
   - Done when:
     - GetNextMove takes `Difficulty` and `Board`, with `Version` as the fallback. `Depth` and `Player` have no effect, and the web app's current request still works.

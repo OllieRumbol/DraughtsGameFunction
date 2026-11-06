@@ -3,7 +3,7 @@
 > **What this document is for:** It answers *what are we building, and why?* It is agreed before any design or code, and it is the source of truth for requirements.
 
 Status: Approved
-Last updated: 2026-11-04
+Last updated: 2026-11-06
 
 ---
 
@@ -372,7 +372,7 @@ Items 1 and 2 apply from stage 1. Item 3 applies once defect 2 (section 4.1) is 
 
    Easy does not search, so it has no time limit. The limits are set on the server, and can be tuned without a change to the web app.
 
-   **How the limits are checked on the live app.** The logs record the time from the start of the request until the function returns, which takes a little longer than the search. They leave out writing the response, which is short. So the check allows a margin of 200 ms, and ignores single slow requests:
+   **How the limits are checked on the live app.** The logs record the time from when the function starts until it returns, which takes a little longer than the search. They leave out any wait before the function starts, and writing the response, which is short. So the check allows a margin of 200 ms, and ignores single slow requests:
    * Send one warm-up request. Then send 30 requests for each of Normal and Hard, from several different positions.
    * At least 95% of the requests SHALL finish within the limit plus 200 ms: 700 ms for Normal and 1,200 ms for Hard. The times are read from the logs.
    * Cold starts do not count.
@@ -389,14 +389,14 @@ Items 1 and 2 apply from stage 1. Item 3 applies once defect 2 (section 4.1) is 
    * So that a game always ends, a game is also a draw after 50 moves in a row with no capture, or after 200 moves in total. This rule applies to these test games only, not to the API or the web app.
    * Each game starts with a few random opening moves, so the games are not all the same.
    * Each side moves first in half of the games.
-4. **Location.** Every Azure resource SHALL be in the UK South region.
+4. **Location.** Every Azure resource that has a region SHALL be in the UK South region. Budgets and the action group are global, because Azure offers no UK South option for them. They hold alert settings, not game data. The owner approved this on 2026-11-05.
 5. **Cost.**
    * Hosting SHALL stay within the Azure Functions free grant. The only expected charge is the storage account that Azure Functions needs, at about £0.10 a month. The owner approved this cost on 2026-11-02.
    * THE SYSTEM SHALL never run more than one instance at a time, so that a flood of requests cannot multiply the cost.
    * No part of the hosting SHALL be billed while the app is idle, other than storage.
    * An email alert SHALL be sent when the actual or forecast monthly cost reaches £1.
    * The function app SHALL be stopped automatically when the monthly cost reaches £3. After an automatic stop, the app stays stopped until the owner starts it again. While it is stopped, the web app shows its general error message.
-6. **Logging.** THE SYSTEM SHALL record, for each request, the route, the status code and the duration, and SHALL record warnings and errors. It SHALL NOT log each move or the search detail. Log storage SHALL be capped at 0.1 GB a day. If the cap is reached, logging stops for the rest of that day, and the API keeps working.
+6. **Logging.** THE SYSTEM SHALL record, for each request that gets a response, the route, the status code and the duration, and SHALL record warnings and errors. It SHALL NOT log each move or the search detail. Log storage SHALL be capped at 0.1 GB a day. If the cap is reached, logging stops for the rest of that day, and the API keeps working.
 7. **Security.**
    * The endpoints stay anonymous. Cross-origin access stays limited to the web app's origin (section 5.3).
    * No deployment password, publish profile or other long-lived credential is stored in the repository or in GitHub secrets.

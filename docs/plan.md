@@ -3,7 +3,7 @@
 > **What this document is for:** It answers *how will we build it?* It turns the approved requirements in spec.md into a design, and it is agreed before any code is written.
 
 Status: Approved
-Last updated: 2026-11-04
+Last updated: 2026-11-06
 
 ---
 
@@ -53,7 +53,8 @@ Chosen: build the new app side by side, then switch the web app's URL (spec sect
 | `Search__HardTimeLimitMs` | `1000` | Spec section 6.4, item 1. Not secret. |
 | `AzureWebJobsStorage` | Set by `az functionapp create` | **Secret** (connection string). Stored in the app's settings in Azure. Locally, `UseDevelopmentStorage=true` in the git-ignored `local.settings.json`. |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Set when Application Insights is linked | Not read locally. Without it, logs go to the `func start` console. |
-| `FUNCTIONS_WORKER_RUNTIME` | `dotnet-isolated` | Set by `az functionapp create` in Azure. Locally, in the git-ignored `local.settings.json`. |
+| `FUNCTIONS_WORKER_RUNTIME` | `dotnet-isolated` | Local only, in the git-ignored `local.settings.json`. Flex Consumption [deprecates this setting](https://learn.microsoft.com/azure/azure-functions/functions-app-settings#flex-consumption-plan-deprecations), and uses `functionAppConfig.runtime` instead. |
+| `DEPLOYMENT_STORAGE_CONNECTION_STRING` | Set by `az functionapp create`, if the app's deployment storage uses a connection string | **Secret**, if present. Confirm it when the app is created. |
 
 The `Search` settings bind to a typed options class, validated at startup, with the defaults above in code. So a limit can be tuned in Azure with no deployment, as spec section 6.4, item 1 requires.
 
@@ -213,7 +214,7 @@ Inside the engine, the board is `int[64]`, indexed by `row * 8 + column`, with t
 | Instance size | 512 MB to start | The owner confirmed this on 2026-11-04, knowing it has 0.25 of a CPU core, for the smallest cost. See risk 1 in section 9. The size can be changed with one command. | 2,048 MB is held in reserve. |
 | Execution model | Isolated worker with ASP.NET Core integration, returning `IResult` | Spec section 2.4. Same as PickTime. | — |
 | Reading the board | A custom `BoardJsonConverter` that reads rows into `long[,]` | `System.Text.Json` cannot read `long[,]` (checked by probe). A converter means no model, service or test has to change in step 1, which keeps the deadline work small. It also rejects boards that are not 8 by 8. Checked by probe: the error's `Path` is `$.Board`. | `long[][]` in the models changes every test and service in the urgent step. Keeping Newtonsoft breaks "one JSON library per project". |
-| Error messages | Written by us, chosen by the JSON error's `Path`, compared ignoring letter case | The owner's standards forbid sending exception messages to clients. Checked by probe: `Path` is `$.Difficulty` for `3` and `"extreme"`, and it follows the client's letter case (`$.difficulty`). | Returning `ex.Message`, as the code does today. |
+| Error messages | Written by us, chosen by the JSON error's `Path`, compared ignoring letter case | The owner's standards forbid sending exception messages to clients. Checked by probe: `Path` is `$.Difficulty` for `3` and `"extreme"`, and it follows the client's letter case (`$.difficulty`). Also checked by probe on .NET 10: an inner `FormatException` or `InvalidOperationException` means a wrong value at that path, so it gets that path's message. Only a reader error means broken JSON. | Returning `ex.Message`, as the code does today. |
 | Reading `Difficulty` | A small `DifficultyJsonConverter` that accepts only the three names | Checked by probe: `JsonStringEnumConverter` also accepts `"easy,hard"` and `" hard "`, which spec section 6.1.1, item 7 does not allow. | `JsonStringEnumConverter(allowIntegerValues: false)` |
 | Web API style | HTTP-triggered functions | The project is a function app | — |
 | Ties in the search | At the root, search each move with the window `(best - 1, beta)` | A plain alpha-beta window cuts off a move that only equals the best, and returns a bound, so a tie cannot be seen. One point lower makes an equal move return its exact score. The search then keeps every move with the top score, and the tie breaker picks one (spec section 6.1.5, item 7). | Shuffling the moves first does not choose fairly. Scores within a margin were rejected by the owner. |
@@ -339,7 +340,7 @@ The difficulty is not logged by default. The check in section 7.3 runs each leve
 | Authentication | Anonymous, as spec section 5.3. The computer's moves and the rules are public. |
 | CORS | `https://ollierumbol.github.io` only, set on the function app. Blocks other sites in a browser, but not direct calls, which is why the cost limits exist. |
 | Branch protection | `master` requires a pull request with 0 approvals and a passing `Build and test` check. It applies to admins too, and blocks force pushes and deletion. Same as PickTime. A merge deploys, so a red build must not be able to merge. |
-| Deployment | OpenID Connect through a user-assigned managed identity. No stored secret. The ids are repository variables. |
+| Deployment | OpenID Connect through a user-assigned managed identity. No stored credential. The client, tenant and subscription ids are GitHub secrets, only so that GitHub masks them in this public repository's workflow logs. They are not credentials, because signing in also needs the federated trust, so spec section 6.4, item 7 still holds. The owner chose this on 2026-11-06. |
 | Publishing credentials | SCM and FTP basic authentication are off on the function app, as in PickTime. So no publish profile works. |
 | HTTPS | HTTPS Only is on, as in PickTime. |
 | Deployment rights | Website Contributor on the function app only, if that is enough for a Flex deployment (risk 6 in section 9) |
@@ -379,7 +380,7 @@ The difficulty is not logged by default. The check in section 7.3 runs each leve
 | 9 | Examples 19 and 20: a chain can end on its start square, both directions give one move, a loop ends with no piece captured twice, and `Apply` keeps the piece when `From` equals `To` | 6.1.3 items 5, 8, 9, 6.5 #7, 6.2 #19, #20 | Defects 9, 10, double capture, a king lost from the board |
 | 10 | A man reaching the far row ends its chain and is promoted | 6.1.3 item 7 | Chain carries on as a king |
 | 11 | Value 6 squares behave as empty | 6.2 #9 | Highlighted squares block moves |
-| 12 | Old and new generators agree on a fixed set of positions, except for defects 1 and 10. No position has a king loop, because defect 9 crashes the old code. Run once, in step 2, before the old code is removed. | 6.1.3 | A rule lost in the rewrite |
+| 12 | Old and new generators agree on a fixed set of positions, except for defects 1 and 10. No position has a king chain that loops without ending on its start square, because defect 9 crashes the old code. Run once, in step 2, before the old code is removed. | 6.1.3 | A rule lost in the rewrite |
 | 13 | Search at fixed depth gives the same score and the same move as plain minimax on a fixed set of positions, with the first tied move in generator order for both | 6.1.5 | A pruning or table bug |
 | 14 | A position where two moves tie exactly returns both over repeated runs. A lower-scoring move is never returned. | 6.1.5 item 7 | Alpha-beta hides ties |
 | 15 | Example 16: 20 Normal moves from the start give at least 2 different moves | 6.2 #16 | Defect 6 |
@@ -408,9 +409,14 @@ The difficulty is not logged by default. The check in section 7.3 runs each leve
 Run by hand, with results in the pull request.
 
 1. **Contract.** Replay the requests in spec section 5 against the new URL, and compare with the captured responses.
-2. **Full game.** Before the switch, a script plays a game at each level, calling the new URL directly, because CORS blocks a local copy of the web app. After the release, the owner plays a full game at each level on the live site.
+2. **Full game.** Before the switch, a script plays a game at each level, calling the new URL directly, because CORS blocks a local copy of the web app. After the release, the owner plays a full game at each level on the live site. The script works like this:
+   * Player 1 is `Version: 1` with `Player: 1`, which plays random moves in stage 1. Player 2 is the level under test, with the depth the web app sends.
+   * The game ends by the rule in spec section 2.1, item 6, or after 200 moves in total. A game that reaches 200 moves counts as finished, and the result says so.
+   * Each move is checked against the board: the start holds the moving player's piece, the end is empty or is the start, and each captured square holds an opponent's piece. This finds a broken response. It does not prove the rules, which the tests in section 7.2 do.
+   * A 500 response stops that game. The result records the board and the request, because it may be defect 9 (risk 12).
 3. **Speed.** Spec section 6.4, item 1. A short script sends the warm-up, then 30 requests for each level from fixed positions, with a pause between levels. It also records `CompletedDepth` while a temporary log line is on, so we learn the real depth on Azure. The line is removed afterwards (spec section 6.4, item 6).
-4. **Concurrency.** Send 12 requests at once to see how the single instance behaves (risk 2).
+4. **Concurrency.** Send 12 requests at once to see how the single instance behaves (risk 2). Use client-side timings, and record each status code, because the logged time does not include a wait before the function starts.
+5. **Logs.** Before the switch, confirm in Application Insights that each request has one line, with `Route`, `StatusCode` and `DurationMs` in `customDimensions`, and the correct status. No other category logs at Information. Compare the volume with the estimate in section 8.1, because the exporter also sends traces and metrics. The worker stops the host relaying its logs in Azure, so a fault here means no request logs at all.
 
 ### 7.4 Strength
 
@@ -431,7 +437,7 @@ dotnet run --project DraughtsGameFunctionSelfPlay -c Release -- --games 200 --ti
 
 ### 8.1 Azure resources
 
-All in UK South (spec section 6.4, item 4). Names are proposals, and the function app name must be free across Azure.
+In UK South, other than the global items that spec section 6.4, item 4 names. Application Insights is documented to create a smart detection rule and its action group automatically. Nothing uses them and they are global, so they are deleted when the resources are created. Names are proposals, and the function app name must be free across Azure.
 
 | Resource | Name | Plan | Free allowance | Expected usage |
 | --- | --- | --- | --- | --- |
@@ -448,17 +454,18 @@ All in UK South (spec section 6.4, item 4). Names are proposals, and the functio
 
 Figures were checked on 2026-11-02 and 2026-11-04, on the Azure pricing pages. The Log Analytics and budget figures come from PickTime's plan, checked on 2026-10-06. Check them again when creating the resources.
 
-**Worst case with the limits off.** One 512 MB instance, busy for a whole month, is about 1.3 million GB-s. At the example rate in Microsoft's docs ($0.000026 per GB-s), that is about $30 after the grant. The £3 stop acts long before that.
+**Worst case with the limits off.** One 512 MB instance, busy for a whole month, is about 1.3 million GB-s. At the example rate in Microsoft's docs ($0.000026 per GB-s), that is about $30 after the grant. Flex also [bills executions](https://learn.microsoft.com/azure/azure-functions/flex-consumption-plan#billing) after the grant, and this figure leaves them out. The £3 stop should act long before that, although it can lag (section 8.3).
 
 ### 8.2 Creating the resources
 
 Created once, by hand, with the Azure CLI, as PickTime does. The pipeline only deploys code, so its identity stays narrow. These commands are the record. They need the owner's `az login`, and they change a real subscription.
 
-Check first that the region offers what the plan needs. No document has confirmed this yet:
+The owner saw Flex Consumption offered for UK South on the portal's create page during the spec work, and created nothing there. Check it from the CLI first, because this also confirms .NET 10. List the existing default resource groups at the same time, so that the check after creation has something to compare with:
 
 ```bash
 az functionapp list-flexconsumption-locations --runtime dotnet-isolated -o table
 az functionapp list-flexconsumption-runtimes --location uksouth --runtime dotnet-isolated -o table
+az group list --query "[?starts_with(name,'DefaultResourceGroup')].name"
 ```
 
 Then create the resources. The workspace and `appi-draughts-game` come before the function app:
@@ -483,7 +490,7 @@ az resource update -g rg-draughts-game --name ftp --namespace Microsoft.Web --re
 
 The higher concurrency (the default at 512 MB is 4) is on purpose. With one instance, a request above the limit may wait or be rejected. A search that shares the CPU still stops on time, at a lower depth, so sharing is better than rejecting. Section 7.3 tests this.
 
-The identity and its federated credential follow PickTime's steps. The subject is `repo:OllieRumbol/DraughtsGameFunction:ref:refs/heads/master`. The portal may offer GitHub's immutable subject form instead. Check which form this repository's OpenID Connect setting sends, and use that one, as PickTime had to.
+The identity and its federated credential follow PickTime's steps. The subject is `repo:OllieRumbol/DraughtsGameFunction:ref:refs/heads/master`. This repository's OpenID Connect setting returns `use_default: true` and `use_immutable_subject: false` (checked on 2026-11-05), so GitHub sends this classic form. The portal may offer the immutable form instead. Do not use it.
 
 ### 8.3 Automatic stop
 
@@ -511,12 +518,13 @@ One workflow, `.github/workflows/build-and-deploy.yml`, copied from PickTime, wi
 | Branch | `main` | `master` | The repository's default branch |
 | Runner | `windows-latest` | `ubuntu-latest` | Matches Flex Consumption's Linux |
 | Solution | `.slnx` | `DraughtsGameFunction.sln` | Existing file |
+| Azure ids | `vars.` | `secrets.` | GitHub masks them in public logs (section 6) |
 
 Unchanged from PickTime: build and test on every pull request, NuGet Audit warnings as errors, deploy only on a push to the branch, `azure/login` with OpenID Connect, `Azure/functions-action`, and no `environment:` on the deploy job. Microsoft's docs confirm that Flex Consumption uses package deployment through this action, and that `sku` is only needed with a publish profile. The `include-hidden-files` setting on the artifact stays, because the isolated worker needs `.azurefunctions`.
 
 **Branch protection depends on two things here (section 6).** The job keeps the name `Build and test`, because the required check matches that name. The `pull_request` trigger has no path filter, because a required check that never runs would stop a documents-only pull request from merging.
 
-**Rollback.** Flex Consumption has no slots and keeps no previous package. Revert the commit on `master`, and the pipeline deploys the previous version.
+**Rollback.** Flex Consumption has no slots and keeps no previous package. The fastest way is to [re-run the last good workflow run](https://learn.microsoft.com/azure/azure-functions/functions-rollback-deployments). Then fix `master` through a pull request, because the next merge deploys what is there. A revert through a pull request also works.
 
 ### 8.5 Switching over
 
@@ -550,7 +558,7 @@ The web app's code has been unchanged since its last release in March 2022 (the 
 | 3 | The web app's old workflow also runs when the URL change reaches `main`. It uses Node 12 and old actions, its `TOKEN` secret dates from January 2021, and no runs are listed for it. It may fail. | High | The release does not depend on it (section 8.5). A failed run stops before it publishes anything. A successful run publishes the same code. Fixing the workflow belongs to the frontend spec. |
 | 4 | A Flex regional quota in UK South blocks creation, as a Y1 quota did for PickTime. | Low | A quota request is free. Start the resources early, not on the deadline. |
 | 5 | The automatic stop fails silently, because the budget cannot be fully tested. | Low | The £1 email comes first, and the single instance limits the damage. Test the Logic App by hand (section 8.3). |
-| 6 | Website Contributor may not be enough for a Flex package deployment. Microsoft's docs name this role for other plans, but not clearly for Flex. | Medium | Find out on the first deployment. If it fails, use the narrowest role that works, on this app only, and record it. |
+| 6 | Website Contributor may not be enough for a Flex package deployment. The `Azure/functions-action` README names this role, scoped to the function app, but this has not been tried here. | Low | Find out on the first deployment. If it fails, use the narrowest role that works, on this app only, and record it. |
 | 7 | The 10 November date slips. | Medium | Step 1 is kept small. The old app should keep running, unsupported. |
 | 8 | Normal at depth 6 is too strong for casual players, or Hard misses the 80% target. | Medium | Depth is a setting. Self-play and the owner's own games decide. |
 | 9 | Move generation changes the moves the web app expects. The web app has its own move validation and does not call this API to check a player's move. | Low | Test 12 compares old and new. The only intended differences are the defect fixes. The king capture fix means tips can show a move the web app's own code already allows. The web app handles a computer move that ends where it began (`CompleteBoard.js`, `player2Go`, read on 2026-11-04). It would not handle a tip on the king's own square, so test 30 covers that. |
