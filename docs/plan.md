@@ -505,6 +505,10 @@ As spec section 6.4, item 5 requires. No code is added to the app.
 
 To restart: `az functionapp start -n func-draughts-game -g rg-draughts-game`.
 
+The workflow's trigger must be **When an HTTP request is received**, type `Request`. The trigger named **HTTP** runs on a timer, so it would stop the app every 3 minutes. This happened once on 2026-11-06, while the workflow was being built.
+
+The owner built this in the portal on 2026-11-06. Both budgets end on 2030-12-30. Extend them before then, or the alert and the stop end with them.
+
 This is tested once by running the Logic App by hand, confirming that the app stops, and restarting it. The web app's general message is checked the same way after the release, because until then the web app does not call this app. The budget cannot be tested without spending £3, so the link from the budget to the action group is checked with the portal's configuration view.
 
 The stop is not immediate. Cost data is typically available within 8 to 24 hours, and budgets are evaluated every 24 hours ([Create and manage budgets](https://learn.microsoft.com/azure/cost-management-billing/costs/tutorial-acm-create-budgets), read on 2026-11-04). So the bill can pass £3 by up to about two days of use before the app stops. One instance limits this.

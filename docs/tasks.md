@@ -119,7 +119,7 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - For T7: one POST with `Version: 9` returned an empty 404 just after the first deployment, and 15 further requests of 5 kinds were all correct. The cause is not known. Record any 404 in T7's checks.
     - Evidence: pull request 22 for the workflow, and this tick's follow-up pull request for the deployment.
 
-- [ ] **T6 — Add the cost limits (manual)**
+- [x] **T6 — Add the cost limits (manual)**
   - Refs: spec 6.4 items 4–5, spec 9, plan 6, plan 8.1, plan 8.3, risk 5
   - Depends on: T4, T5
   - Done when:
@@ -130,7 +130,10 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - The Logic App, run by hand, stops the function app. The app is then started again and answers.
     - The Logic App's trigger URL is not in the repository.
   - Verify: `az resource show -g rg-draughts-game -n func-draughts-game --resource-type Microsoft.Web/sites --query properties.state` shows `Stopped` after the manual run and `Running` after the restart; the link from the budget to the action group is checked in the portal
-  - Notes: Budgets and the action group are global (spec 6.4 item 4), so create the action group with its default location.
+  - Notes: The owner built these in the portal on 2026-11-06. Budgets and the action group are global (spec 6.4 item 4).
+    - The forecast alert is on the £1 budget only, so a forecast never stops the app (spec 6.4 item 5).
+    - For T8: the web app's general message while the app is stopped is checked there (plan 8.3). The Logic App's trigger URL stops the app, so keep it out of the repository and chat.
+    - Evidence: this task's pull request.
 
 - [ ] **T7 — Check the new app directly (manual)**
   - Refs: spec 5, spec 6.4 items 2, 6, plan 5, plan 7.3 steps 1, 2, 4, 5, plan 8.5 step 1, risks 1, 2, 12
