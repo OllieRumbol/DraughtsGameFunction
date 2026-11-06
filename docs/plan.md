@@ -521,6 +521,8 @@ One workflow, `.github/workflows/build-and-deploy.yml`, copied from PickTime, wi
 | Runner | `windows-latest` | `ubuntu-latest` | Matches Flex Consumption's Linux |
 | Solution | `.slnx` | `DraughtsGameFunction.sln` | Existing file |
 | Azure ids | `vars.` | `secrets.` | GitHub masks them in public logs (section 6) |
+| Sign-in and deploy actions | Major version tags | Commit hashes | This job holds a sign-in token, and a tag can move. The owner chose this on 2026-11-06. Update the hashes by hand. |
+| After deploying | Nothing | A POST to the app must return `successful: true` | A deployment can succeed while the functions do not start. The owner chose this on 2026-11-06. |
 
 Unchanged from PickTime: build and test on every pull request, NuGet Audit warnings as errors, deploy only on a push to the branch, `azure/login` with OpenID Connect, `Azure/functions-action`, and no `environment:` on the deploy job. Microsoft's docs confirm that Flex Consumption uses package deployment through this action, and that `sku` is only needed with a publish profile. The `include-hidden-files` setting on the artifact stays, because the isolated worker needs `.azurefunctions`.
 

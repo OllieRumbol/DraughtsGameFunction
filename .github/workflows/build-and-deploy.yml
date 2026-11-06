@@ -20,6 +20,7 @@ env:
   SOLUTION_PATH: DraughtsGameFunction.sln
   FUNCTION_PROJECT_PATH: DraughtsGameFunction/DraughtsGameFunction.csproj
   FUNCTION_APP_NAME: func-draughts-game
+  FUNCTION_APP_URL: https://func-draughts-game-chhwarhkf4hphjf0.uksouth-01.azurewebsites.net
   PUBLISH_DIRECTORY: publish
   ARTIFACT_NAME: function-app
 
@@ -82,15 +83,25 @@ jobs:
           path: ${{ env.PUBLISH_DIRECTORY }}
 
       # Secrets, so that GitHub masks the three ids in this public repository's logs (plan section 6).
+      # Pinned to a commit, because this job holds a sign-in token (plan section 8.4). Update by hand.
       - name: Sign in to Azure with OpenID Connect
-        uses: azure/login@v3
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy to the Function App
-        uses: Azure/functions-action@v1
+        uses: Azure/functions-action@c5060b3b8bb1ebbcb531abd00c822ecbaa8ea656 # v1.5.7
         with:
           app-name: ${{ env.FUNCTION_APP_NAME }}
           package: ${{ env.PUBLISH_DIRECTORY }}
+
+      # A deployment can succeed while the functions do not start. The retries allow for a cold start.
+      - name: Check that the deployed app answers
+        run: |
+          curl --fail --silent --show-error --retry 10 --retry-delay 15 --retry-all-errors --max-time 60 \
+            --request POST "${{ env.FUNCTION_APP_URL }}/api/GetPotentialMoves" \
+            --header "Content-Type: application/json" \
+            --data '{"Board":[[0,2,0,2,0,2,0,2],[2,0,2,0,2,0,2,0],[0,2,0,2,0,2,0,2],[5,0,5,0,5,0,5,0],[0,5,0,5,0,5,0,5],[1,0,1,0,1,0,1,0],[0,1,0,1,0,1,0,1],[1,0,1,0,1,0,1,0]],"TipFor":1}' \
+            | grep --quiet '"successful":true'
