@@ -437,7 +437,9 @@ dotnet run --project DraughtsGameFunctionSelfPlay -c Release -- --games 200 --ti
 
 ### 8.1 Azure resources
 
-In UK South, other than the global items that spec section 6.4, item 4 names. Application Insights is documented to create a smart detection rule and its action group automatically. Nothing uses them and they are global, so they are deleted when the resources are created. Names are proposals, and the function app name must be free across Azure.
+In UK South, other than the global items that spec section 6.4, item 4 names. Application Insights is documented to create a smart detection rule and its action group automatically. Nothing uses them and they are global, so they would be deleted. None appeared for this app when it was created on 2026-11-06.
+
+The app's URL is `https://func-draughts-game-chhwarhkf4hphjf0.uksouth-01.azurewebsites.net`, because "Secure unique default hostname" adds a random suffix. The function app's plan is `ASP-rgdraughtsgame-af4f`.
 
 | Resource | Name | Plan | Free allowance | Expected usage |
 | --- | --- | --- | --- | --- |
@@ -452,18 +454,18 @@ In UK South, other than the global items that spec section 6.4, item 4 names. Ap
 | Action group | `ag-draughts-game-stop` | Webhook action | 100,000 webhooks a month, from the Azure Monitor pricing page, read on 2026-11-04 | One webhook, only if the £3 budget is reached |
 | Logic App | `la-draughts-game-stop` | Consumption | First 4,000 actions free | 2 actions a run. Metered per run, so nothing while idle. |
 
-Figures were checked on 2026-11-02 and 2026-11-04, on the Azure pricing pages. The Log Analytics and budget figures come from PickTime's plan, checked on 2026-10-06. Check them again when creating the resources.
+The Flex Consumption, Log Analytics, action group and Logic Apps figures were checked again on the Azure pricing pages on 2026-11-06, with no change. Those pages show no Flex Consumption rates. The budget figures come from PickTime's plan, checked on 2026-10-06.
 
 **Worst case with the limits off.** One 512 MB instance, busy for a whole month, is about 1.3 million GB-s. At the example rate in Microsoft's docs ($0.000026 per GB-s), that is about $30 after the grant. Flex also [bills executions](https://learn.microsoft.com/azure/azure-functions/flex-consumption-plan#billing) after the grant, and this figure leaves them out. The £3 stop should act long before that, although it can lag (section 8.3).
 
 ### 8.2 Creating the resources
 
-Created once, by hand, with the Azure CLI, as PickTime does. The pipeline only deploys code, so its identity stays narrow. These commands are the record. They need the owner's `az login`, and they change a real subscription.
+Created once, by hand. The owner created them in the portal on 2026-11-06, as on PickTime, to learn the setup. The pipeline only deploys code, so its identity stays narrow. These commands are an equivalent record, and they were not the ones run, other than the read-only checks. They need the owner's `az login`, and they change a real subscription.
 
 The owner saw Flex Consumption offered for UK South on the portal's create page during the spec work, and created nothing there. Check it from the CLI first, because this also confirms .NET 10. List the existing default resource groups at the same time, so that the check after creation has something to compare with:
 
 ```bash
-az functionapp list-flexconsumption-locations --runtime dotnet-isolated -o table
+az functionapp list-flexconsumption-locations -o table
 az functionapp list-flexconsumption-runtimes --location uksouth --runtime dotnet-isolated -o table
 az group list --query "[?starts_with(name,'DefaultResourceGroup')].name"
 ```
