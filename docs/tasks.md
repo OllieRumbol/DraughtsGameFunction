@@ -169,7 +169,7 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - Rollback until T9: restore the old URL and release again.
     - Evidence: this task's pull request.
 
-- [ ] **T9 — Delete the old resources (manual)**
+- [x] **T9 — Delete the old resources (manual)**
   - Refs: spec 9, plan 8.5 step 6
   - Depends on: T8, plus a few days with no problems
   - Done when:
@@ -178,7 +178,10 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - The old publish profile files under `DraughtsGameFunction/Properties` are removed from the repository.
     - The live site still plays a game.
   - Verify: `az group exists -n DraughtsGameFunction20210321121511ResourceGroup` returns `false`
-  - Notes: This cannot be undone. Look at what the group holds, and show the owner, before deleting it. Until this task is ready, carry on with the next task whose dependencies are done.
+  - Notes: Done on 2026-11-07, the same day as the switch, not after a few days. The owner chose this, knowing it ends the rollback to the old app. The owner deleted the group in the portal.
+    - The group held the old app, its plan and its storage account (the storage was in East US).
+    - Only the old app's deployment template is removed from `Properties`. The two `serviceDependencies` files are general Visual Studio settings, so they stay.
+    - Evidence: this task's pull request.
 
 ## Phase 2 — Move generation
 
