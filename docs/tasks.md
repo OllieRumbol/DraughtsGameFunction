@@ -146,6 +146,10 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - The logs pass the check in plan 7.3 step 5.
   - Verify: the results above, in the pull request. The owner decides whether the speed is good enough to switch.
   - Notes: The full game in the web app comes in T8 (plan 7.3 step 2). If the speed is too slow, moving to 2,048 MB needs the owner's approval (risk 1).
+    - Checked on 2026-11-07. The new app is about twice as fast as the old one at depth 4 and 5, with identical moves. 12 requests at once sometimes wait 25 to 36 seconds before the function starts, which the logs do not show. 8 at once did not (risk 2).
+    - For T18: the request logs and the host's own records agree, one line for each request.
+    - Checkpoint: all checks are done. The next step is the owner's decision on the speed, then tick this task.
+    - Evidence: this task's pull request.
 
 - [ ] **T8 — Release the web app with the new URL (manual)**
   - Refs: spec 3 goal 1, spec 3 non-goals, spec 6.4 item 5, spec 9, plan 7.3 step 2, plan 8.3, plan 8.5 steps 2–5, risk 3
