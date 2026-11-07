@@ -151,7 +151,7 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - The request logs and the host's records agree, one line for each request.
     - Evidence: this task's pull request.
 
-- [ ] **T8 — Release the web app with the new URL (manual)**
+- [x] **T8 — Release the web app with the new URL (manual)**
   - Refs: spec 3 goal 1, spec 3 non-goals, spec 6.4 item 5, spec 9, plan 7.3 step 2, plan 8.3, plan 8.5 steps 2–5, risk 3
   - Depends on: T6, T7
   - Done when:
@@ -163,7 +163,11 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - The new app's logs show the requests, with no errors.
     - With the app stopped by the Logic App, the live site shows its general error message. The app is then started again.
   - Verify: the site at `https://ollierumbol.github.io/draughtsgame` makes its requests to the new URL, shown in the browser's network view; then the query in plan section 5 returns rows
-  - Notes: Leave the owner's uncommitted work on `feature/refactor-complete-board` untouched. The publish step has not been tested (plan 8.5). The old workflow also runs on the merge, and it may fail (risk 3). Rollback: restore the old URL and release again. The pull request and the merge are in the `draughtsgame` repository. Record the result in this repository's pull request.
+  - Notes: The live game switched on 2026-11-07, through draughtsgame pull request 57 and a release by hand. The old workflow failed at its deploy step (risk 3 closed).
+    - Two 500s came from Easy at the end of a game, when player 2 had no moves. Plan 4 accepts this until T12. They were 400s on the old app, and the web app shows the same general message for both.
+    - The owner saw a couple of web app bugs not caused by this work. They belong to the frontend spec.
+    - Rollback until T9: restore the old URL and release again.
+    - Evidence: this task's pull request.
 
 - [ ] **T9 — Delete the old resources (manual)**
   - Refs: spec 9, plan 8.5 step 6

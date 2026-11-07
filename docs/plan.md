@@ -544,7 +544,7 @@ The web app's code has been unchanged since its last release in March 2022 (the 
 * All 7 tests pass.
 * `npm run build` fails with `ERR_OSSL_EVP_UNSUPPORTED`. It passes with `NODE_OPTIONS=--openssl-legacy-provider`.
 * The JavaScript and CSS match the live `gh-pages` branch, ignoring line endings and source map lines. So a release changes only the two URLs.
-* Not tested: the publish step, because it pushes to `gh-pages`.
+* The publish step worked at the release on 2026-11-07, from a clean clone of `main`.
 
 **Steps:**
 
@@ -563,7 +563,7 @@ The web app's code has been unchanged since its last release in March 2022 (the 
 | --- | --- | --- | --- |
 | 1 | 512 MB has 0.25 of a core, so the old search in step 1 is slow, or Hard reaches too little depth later. Depth 5 could take longer than today in step 1, even with .NET 10's 3 times gain. | Medium | Measure it in step 1 (section 7.3). The time limit protects response times from step 3. If it is too slow, moving to 2,048 MB (1 core) is one command. It lowers the free capacity to about 50,000 requests, or about 800 games a month, and it needs the owner's approval. |
 | 2 | Microsoft warns that a maximum below 40 can reject requests when traffic exceeds capacity. | Low for a hobby game | Higher per-instance concurrency, and the test in section 7.3. If needed, raise the maximum instance count with the owner's approval. |
-| 3 | The web app's old workflow also runs when the URL change reaches `main`. It uses Node 12 and old actions, its `TOKEN` secret dates from January 2021, and no runs are listed for it. It may fail. | High | The release does not depend on it (section 8.5). A failed run stops before it publishes anything. A successful run publishes the same code. Fixing the workflow belongs to the frontend spec. |
+| 3 | The web app's old workflow also runs when the URL change reaches `main`. It uses Node 12 and old actions, its `TOKEN` secret dates from January 2021, and no runs are listed for it. It may fail. | Closed | It ran on 2026-11-07 and failed at its deploy step, publishing nothing. The release was run by hand (section 8.5). Fixing the workflow belongs to the frontend spec. |
 | 4 | A Flex regional quota in UK South blocks creation, as a Y1 quota did for PickTime. | Low | A quota request is free. Start the resources early, not on the deadline. |
 | 5 | The automatic stop fails silently, because the budget cannot be fully tested. | Low | The £1 email comes first, and the single instance limits the damage. Test the Logic App by hand (section 8.3). |
 | 6 | Website Contributor may not be enough for a Flex package deployment. | Closed | The first deployment succeeded with this role on 2026-11-06. |
