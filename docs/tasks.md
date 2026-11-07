@@ -135,7 +135,7 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - For T8: the web app's general message while the app is stopped is checked there (plan 8.3). The Logic App's trigger URL stops the app, so keep it out of the repository and chat.
     - Evidence: this task's pull request.
 
-- [ ] **T7 — Check the new app directly (manual)**
+- [x] **T7 — Check the new app directly (manual)**
   - Refs: spec 5, spec 6.4 items 2, 6, plan 5, plan 7.3 steps 1, 2, 4, 5, plan 8.5 step 1, risks 1, 2, 12
   - Depends on: T5
   - Done when:
@@ -145,10 +145,10 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
     - 12 requests at once are sent, and each client-side time and status code is recorded.
     - The logs pass the check in plan 7.3 step 5.
   - Verify: the results above, in the pull request. The owner decides whether the speed is good enough to switch.
-  - Notes: The full game in the web app comes in T8 (plan 7.3 step 2). If the speed is too slow, moving to 2,048 MB needs the owner's approval (risk 1).
-    - Checked on 2026-11-07. The new app is about twice as fast as the old one at depth 4 and 5, with identical moves. 12 requests at once sometimes wait 25 to 36 seconds before the function starts, which the logs do not show. 8 at once did not (risk 2).
-    - For T18: the request logs and the host's own records agree, one line for each request.
-    - Checkpoint: all checks are done. The next step is the owner's decision on the speed, then tick this task.
+  - Notes: The owner approved the switch on 2026-11-07, and kept 512 MB and 1 instance (risks 1, 2).
+    - The new app is about twice as fast as the old one at depth 4 and 5, with identical moves, mostly because it is near the players. Cold start 1.3 s.
+    - 12 requests at once sometimes wait 25 to 36 seconds before the function starts, which the logs do not show. 8 at once did not. T18 tests this again.
+    - The request logs and the host's records agree, one line for each request.
     - Evidence: this task's pull request.
 
 - [ ] **T8 — Release the web app with the new URL (manual)**
