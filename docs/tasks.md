@@ -196,9 +196,9 @@ Goal: one move generator follows the house rules, defects 1, 2, 5, 9 and 10 are 
     - Test 12 passes. Its only differences between old and new are defects 1 and 10, and each one is listed in the pull request.
   - Verify: the standard test command
   - Notes: Do not change the house rules (spec 2.1). Captures stay optional, a chain may stop after any jump, a man cannot capture a king, and a king may land back on its start square.
-    - The engine files start with `#nullable enable`, because the service project has no `Nullable` setting. `Move` also has a `CaptureCount` property, which the plan does not list.
-    - Test 12 (`MoveGeneratorComparisonTests`) compares 7 example positions and the positions from 60 games of seeded random moves, about 14,400 in all. It skips the 10 played positions where a king captures 4 or more pieces, because only those can loop and crash the old code (defect 9). It also checks `HasMove` against `Generate` on every played position.
-    - Its differences: 1 for defect 10 (example 19) and 25 for defect 1. Each defect 1 move starts with the king's up-right jump. The old code gives no move that the new code does not.
+    - The engine files start with `#nullable enable`, because the service project has no `Nullable` setting. `Generate` and `HasMove` throw for a player other than 1 or 2, or a board that is not 64 squares.
+    - Test 12 (`MoveGeneratorComparisonTests`) compares 7 example positions and the positions from 60 games of seeded random moves, about 14,400 in all. It skips the 10 played positions where a king captures 4 or more pieces, because only those can loop and crash the old code (defect 9). It also checks `HasMove` against `Generate` for both players on every played position.
+    - Its differences: 1 for defect 10 (example 19) and 25 for defect 1. The test asserts both counts. Each defect 1 move starts with the king's up-right jump. The old code gives no move that the new code does not.
     - T11 deletes `MoveGeneratorComparisonTests` with the old code.
 
 - [ ] **T11 — Switch to the new move generator and remove the old code**

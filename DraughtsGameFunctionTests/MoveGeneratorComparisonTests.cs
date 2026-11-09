@@ -5,6 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using static DraughtsGameFunctionTests.EngineBoards;
 
 namespace DraughtsGameFunctionTests;
@@ -23,6 +24,12 @@ public class MoveGeneratorComparisonTests(TestContext testContext)
     // The old code crashes on a king chain that loops away from its start square (defect 9). Any such loop
     // takes at least 4 jumps, over 4 different pieces, so a position whose king captures stop below 4 is safe.
     private const int CapturesThatCouldLoop = 4;
+
+    // The seed is fixed, so these counts change only when the seed, the number of games or a generator changes.
+    // Each defect 1 move was checked by hand: it starts with a king's up-right jump at a square where the king could
+    // also jump down-right, which the old code drops (KingTree.cs).
+    private const int ExpectedDefect10Moves = 1;
+    private const int ExpectedDefect1Moves = 25;
 
     [TestMethod]
     public void Generate_FixedAndPlayedPositions_MatchesOldCodeExceptDefects1And10()
@@ -47,10 +54,17 @@ public class MoveGeneratorComparisonTests(TestContext testContext)
             }
 
             // Act
-            var oldMoves = FindMove.FindAvailableMoves(ToRows(board), player).Select(ToMove).ToHashSet();
+            var oldNextMoves = FindMove.FindAvailableMoves(ToRows(board), player);
+            var oldMoves = oldNextMoves.Select(ToMove).ToHashSet();
             comparedCount++;
 
             // Assert
+            // The capture mask would hide a piece that the old code captures twice.
+            foreach (var move in oldNextMoves.Where(move => move.Takes.Count != BitOperations.PopCount(ToMove(move).Captured)))
+            {
+                unexpected.Add($"The old code captures a piece twice in {Describe(ToMove(move))} on {Text(board)}");
+            }
+
             foreach (var move in oldMoves.Except(newMoves))
             {
                 unexpected.Add($"Only the old code gives {Describe(move)} on {Text(board)}");
@@ -76,15 +90,15 @@ public class MoveGeneratorComparisonTests(TestContext testContext)
 
         testContext.WriteLine($"Compared {comparedCount} positions and skipped {skippedCount} that could loop.");
         testContext.WriteLine($"New king captures that end on the start square (defect 10): {endsOnStart.Count}.");
-        testContext.WriteLine($"Other new king captures (defect 1, or defect 10 where the chain passes its start square): {otherKingCaptures.Count}.");
+        testContext.WriteLine($"Other new king captures (defect 1): {otherKingCaptures.Count}.");
         foreach (var finding in endsOnStart.Concat(otherKingCaptures))
         {
             testContext.WriteLine(finding);
         }
 
         Assert.IsEmpty(unexpected, string.Join(Environment.NewLine, unexpected.Take(10)));
-        Assert.IsNotEmpty(endsOnStart, "Example 19 should show defect 10.");
-        Assert.IsNotEmpty(otherKingCaptures, "Example 3 should show defect 1.");
+        Assert.HasCount(ExpectedDefect10Moves, endsOnStart, "Only example 19 should show defect 10.");
+        Assert.HasCount(ExpectedDefect1Moves, otherKingCaptures, "A new king capture that is not defect 1 has appeared, or one has gone.");
         Assert.IsGreaterThan(1000, comparedCount, "Too few positions were compared to trust the result.");
     }
 
@@ -129,8 +143,8 @@ public class MoveGeneratorComparisonTests(TestContext testContext)
                 yield return ((int[])board.Clone(), 1);
                 yield return ((int[])board.Clone(), 2);
 
-                MoveGenerator.Generate(board, player, moves);
-                Assert.AreEqual(moves.Count > 0, MoveGenerator.HasMove(board, player), $"HasMove disagrees with Generate on {Text(board)}");
+                AssertHasMoveAgrees(board, 3 - player, moves);
+                AssertHasMoveAgrees(board, player, moves);
                 if (moves.Count == 0)
                 {
                     break;
@@ -142,8 +156,15 @@ public class MoveGeneratorComparisonTests(TestContext testContext)
         }
     }
 
+    // This fills the moves for the player, so call it for the player to move last.
+    private static void AssertHasMoveAgrees(int[] board, int player, List<Move> moves)
+    {
+        MoveGenerator.Generate(board, player, moves);
+        Assert.AreEqual(moves.Count > 0, MoveGenerator.HasMove(board, player), $"HasMove disagrees with Generate for player {player} on {Text(board)}");
+    }
+
     private static bool CouldLoop(int[] board, HashSet<Move> moves) =>
-        moves.Any(move => Board.IsKing(board[move.From]) && move.CaptureCount >= CapturesThatCouldLoop);
+        moves.Any(move => Board.IsKing(board[move.From]) && BitOperations.PopCount(move.Captured) >= CapturesThatCouldLoop);
 
     private static Move ToMove(NextMove move)
     {

@@ -38,7 +38,10 @@ public static class Board
 
     public static int Column(int square) => square % Size;
 
-    /// <summary>Copies the request's board into the flat array. The caller has already checked it is 8 by 8.</summary>
+    /// <summary>
+    /// Copies the request's board into the flat array. The caller has already checked that it is 8 by 8 and that
+    /// each value is 0 to 6 (spec section 6.1.2, rules 2 and 4), so the cast to int cannot change a value.
+    /// </summary>
     public static int[] FromRows(long[,] rows)
     {
         var board = new int[SquareCount];

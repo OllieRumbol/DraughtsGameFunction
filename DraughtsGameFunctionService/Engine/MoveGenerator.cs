@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 
@@ -15,6 +16,7 @@ public static class MoveGenerator
     /// </summary>
     public static void Generate(int[] board, int player, List<Move> moves)
     {
+        CheckArguments(board, player);
         moves.Clear();
 
         for (var square = 0; square < Board.SquareCount; square++)
@@ -35,6 +37,8 @@ public static class MoveGenerator
     /// <summary>True when the player has at least one legal move. It stops at the first one it finds.</summary>
     public static bool HasMove(int[] board, int player)
     {
+        CheckArguments(board, player);
+
         for (var square = 0; square < Board.SquareCount; square++)
         {
             var piece = board[square];
@@ -80,6 +84,17 @@ public static class MoveGenerator
         }
 
         board[move.To] = Promote(piece, move.To);
+    }
+
+    // Any player value other than 1 would otherwise be read as player 2.
+    private static void CheckArguments(int[] board, int player)
+    {
+        ArgumentOutOfRangeException.ThrowIfNotEqual(board.Length, Board.SquareCount, nameof(board));
+
+        if (player is not (1 or 2))
+        {
+            throw new ArgumentOutOfRangeException(nameof(player), player, "The player must be 1 or 2.");
+        }
     }
 
     private static void AddSimpleMoves(int[] board, int square, int piece, List<Move> moves)

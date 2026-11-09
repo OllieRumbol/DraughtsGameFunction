@@ -1,5 +1,6 @@
 using DraughtsGameFunctionService.Engine;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using static DraughtsGameFunctionTests.EngineBoards;
@@ -129,7 +130,7 @@ public class MoveGeneratorTests
             Move((7, 4), (5, 2), (6, 3), (4, 1), (4, 3), (2, 1), (2, 3)));
     }
 
-    // Test 9: a move that ends where it began must not lose the king (plan 6.5, item 7).
+    // Test 9: a move that ends where it began must not lose the king (spec section 6.5, item 7).
     [TestMethod]
     public void Apply_MoveEndsOnStartSquare_KeepsKingAndRemovesCaptures()
     {
@@ -145,6 +146,36 @@ public class MoveGeneratorTests
 
         // Assert
         CollectionAssert.AreEqual(expected, board);
+    }
+
+    // Test 8: a man captures forward only, even when the square behind the opponent is empty (spec 6.1.3, item 3).
+    [TestMethod]
+    public void Generate_OpponentManBehindMan_DoesNotCaptureBackwards()
+    {
+        // Arrange
+        var board = Create((4, 3, Board.Player1Man), (5, 4, Board.Player2Man));
+
+        // Act
+        var moves = Generate(board, player: 1);
+
+        // Assert
+        AssertMoves(moves,
+            Move((4, 3), (3, 2)),
+            Move((4, 3), (3, 4)));
+    }
+
+    // Any player other than 1 or 2 would otherwise be read as player 2.
+    [TestMethod]
+    [DataRow(0)]
+    [DataRow(3)]
+    public void Generate_PlayerNotOneOrTwo_Throws(int player)
+    {
+        // Arrange
+        var board = Board.FromRows(StartingRows());
+
+        // Act and assert
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => Generate(board, player));
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => MoveGenerator.HasMove(board, player));
     }
 
     // Test 10: a man that reaches the far row stops there, even when it could jump again as a king.
