@@ -187,7 +187,7 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
 
 Goal: one move generator follows the house rules, defects 1, 2, 5, 9 and 10 are fixed, and all request validation is in place.
 
-- [ ] **T10 — Add the new move generator beside the old code**
+- [x] **T10 — Add the new move generator beside the old code**
   - Refs: spec 2.1, spec 2.2, spec 6.1.3, spec 6.2 examples 3, 4, 9, 17–20, spec 6.5 items 1, 6, 7, plan 3.1, plan 3.2, plan 3.3, plan 3.4, risk 9, tests 8–12
   - Depends on: T8
   - Done when:
@@ -196,6 +196,9 @@ Goal: one move generator follows the house rules, defects 1, 2, 5, 9 and 10 are 
     - Test 12 passes. Its only differences between old and new are defects 1 and 10, and each one is listed in the pull request.
   - Verify: the standard test command
   - Notes: Do not change the house rules (spec 2.1). Captures stay optional, a chain may stop after any jump, a man cannot capture a king, and a king may land back on its start square.
+    - The engine files start with `#nullable enable`, because the service project has no `Nullable` setting. `Generate` and `HasMove` throw for a player other than 1 or 2, or a board that is not 64 squares.
+    - Test 12 compares about 14,400 positions and finds 1 defect 10 and 25 defect 1 differences, listed in pull request 28. It skips positions that could crash the old code (defect 9).
+    - T11 deletes `MoveGeneratorComparisonTests` with the old code.
 
 - [ ] **T11 — Switch to the new move generator and remove the old code**
   - Refs: spec 3 goal 4, spec 4.1 defects 1, 5, 9, 10, spec 6.1.4, spec 6.2 examples 1, 21, plan 3.1, plan 3.3, plan 7.1, risks 9, 12, tests 12, 30
