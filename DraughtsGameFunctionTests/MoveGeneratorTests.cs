@@ -303,6 +303,67 @@ public class MoveGeneratorTests
         Assert.HasCount(7, player2Moves);
     }
 
+    // A value outside 0 to 6 blocks its square until request validation rejects it (spec 6.1.2, rule 4).
+    // A plain cast to int would turn 2^32 + 1 into 1, a player 1 man.
+    [TestMethod]
+    [DataRow(4294967297L)]
+    [DataRow(7L)]
+    [DataRow(-1L)]
+    public void FromRows_ValueOutsideZeroToSix_BlocksTheSquare(long value)
+    {
+        // Arrange
+        var rows = StartingRows();
+        rows[4, 1] = value;
+
+        // Act
+        var board = Board.FromRows(rows);
+
+        // Assert
+        Assert.AreEqual(0, board[Board.Index(4, 1)]);
+    }
+
+    // HasMove must agree with Generate, because the no-move error depends on it. Positions come from games of
+    // random legal moves with a fixed seed, so every run checks the same positions.
+    [TestMethod]
+    public void HasMove_PositionsFromRandomGames_AgreesWithGenerate()
+    {
+        // Arrange
+        var random = new Random(20261109);
+        var moves = new List<Move>();
+        var checkedCount = 0;
+
+        for (var game = 0; game < 60; game++)
+        {
+            var board = Board.FromRows(StartingRows());
+            var player = 1;
+
+            for (var ply = 0; ply < 120; ply++)
+            {
+                foreach (var side in new[] { 3 - player, player })
+                {
+                    // Act
+                    MoveGenerator.Generate(board, side, moves);
+                    var hasMove = MoveGenerator.HasMove(board, side);
+
+                    // Assert
+                    Assert.AreEqual(moves.Count > 0, hasMove, $"Player {side}, board {string.Concat(board)}");
+                    checkedCount++;
+                }
+
+                // The moves list now holds the moves of the player to move.
+                if (moves.Count == 0)
+                {
+                    break;
+                }
+
+                MoveGenerator.Apply(board, moves[random.Next(moves.Count)]);
+                player = 3 - player;
+            }
+        }
+
+        Assert.IsGreaterThan(5000, checkedCount);
+    }
+
     private static void AssertMoves(List<Move> actual, params Move[] expected)
     {
         var actualText = string.Join(", ", actual.Select(Describe).Order());

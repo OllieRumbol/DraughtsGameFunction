@@ -200,7 +200,7 @@ Goal: one move generator follows the house rules, defects 1, 2, 5, 9 and 10 are 
     - Test 12 compares about 14,400 positions and finds 1 defect 10 and 25 defect 1 differences, listed in pull request 28. It skips positions that could crash the old code (defect 9).
     - T11 deletes `MoveGeneratorComparisonTests` with the old code.
 
-- [ ] **T11 — Switch to the new move generator and remove the old code**
+- [x] **T11 — Switch to the new move generator and remove the old code**
   - Refs: spec 3 goal 4, spec 4.1 defects 1, 5, 9, 10, spec 6.1.4, spec 6.2 examples 1, 21, plan 3.1, plan 3.3, plan 7.1, risks 9, 12, tests 12, 30
   - Depends on: T10
   - Done when:
@@ -210,7 +210,11 @@ Goal: one move generator follows the house rules, defects 1, 2, 5, 9 and 10 are 
     - Each case in `CheckMoveTests` moves to `FindMoveTests`, with the same board and the same expected move.
     - No exception is used to detect the board edge.
   - Verify: the standard test command; then `git grep -n -E "CheckMove|KingTree|TreeTake" -- "*.cs"` finds only the moved test names, if any
-  - Notes: The old search still runs after this task, on the new generator. Its board update clears the square before it writes the piece (`AutomatedPlayerServiceV2.cs:114`, and V3), so a move that ends where it began keeps the king.
+  - Notes: The old search runs on the new generator until T17. Its board update clears the start square first, so a move that ends where it began keeps the king.
+    - For T12: `FindAvailableMoves` returns an empty list for a player other than 1 or 2, which keeps `Run_NoTipFor_ReturnsEmptyListAsToday` passing until rule 5.
+    - For T12: `Board.FromRows` reads a value outside 0 to 6 as a blocked square. A piece on a light square can now move; rule 4 does not reject it, and the web app never sends it.
+    - `Takes` is in board order, and moves come in a new order. The web app clears all takes at once (`CompleteBoard.js`), so neither matters.
+    - Evidence and reviews: pull request 29.
 
 - [ ] **T12 — Add the remaining validation and the no-move error**
   - Refs: spec 3 goal 4, spec 4.1 defect 2, spec 6.1.2 rules 4–5, spec 6.1.4 item 3, spec 6.1.5 item 3, spec 6.2 example 5, spec 6.5 item 2, plan 3.5, plan 4, tests 25, 28

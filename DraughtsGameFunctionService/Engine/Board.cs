@@ -39,8 +39,8 @@ public static class Board
     public static int Column(int square) => square % Size;
 
     /// <summary>
-    /// Copies the request's board into the flat array. The caller has already checked that it is 8 by 8 and that
-    /// each value is 0 to 6 (spec section 6.1.2, rules 2 and 4), so the cast to int cannot change a value.
+    /// Copies the request's board into the flat array. The caller has already checked that it is 8 by 8
+    /// (spec section 6.1.2, rule 2).
     /// </summary>
     public static int[] FromRows(long[,] rows)
     {
@@ -50,7 +50,11 @@ public static class Board
         {
             for (var column = 0; column < Size; column++)
             {
-                board[Index(row, column)] = (int)rows[row, column];
+                var value = rows[row, column];
+
+                // Until rule 4 rejects them, a value outside 0 to 6 blocks its square, as it did in the old code.
+                // A plain cast could turn a large value into a piece, for example 2^32 + 1 into 1.
+                board[Index(row, column)] = value is >= 0 and <= Highlighted ? (int)value : 0;
             }
         }
 

@@ -40,5 +40,35 @@ namespace DraughtsGameFunctionTests
             // Assert
             Assert.AreEqual(4, pieces.Count);
         }
+
+        // Test 30, example 21: a king's chain can end on its own square, but that square is not a tip (spec 6.1.4, item 4).
+        [TestMethod]
+        public void GetPotentialMoves_KingChainEndsOnItsOwnSquare_LeavesThatSquareOut()
+        {
+            // Associate
+            PlayerTipsService playerTipsService = new PlayerTipsService();
+            GetPlayerTips getPlayerTips = new GetPlayerTips
+            {
+                Board = new long[,]
+                {
+                    { 0, 5, 0, 5, 0, 5, 0, 5 },
+                    { 5, 0, 4, 0, 5, 0, 5, 0 },
+                    { 0, 1, 0, 1, 0, 5, 0, 5 },
+                    { 5, 0, 5, 0, 5, 0, 5, 0 },
+                    { 0, 1, 0, 1, 0, 5, 0, 5 },
+                    { 5, 0, 5, 0, 5, 0, 5, 0 },
+                    { 0, 5, 0, 5, 0, 5, 0, 5 },
+                    { 5, 0, 5, 0, 5, 0, 5, 0 },
+                },
+                TipFor = 2
+            };
+
+            // Act
+            List<Piece> pieces = playerTipsService.GetPotentialMoves(getPlayerTips);
+
+            // Assert
+            IEnumerable<string> squares = pieces.Select(p => $"({p.Height},{p.Width})").Order();
+            Assert.AreEqual("(0,1), (0,3), (3,0), (3,4), (5,2)", string.Join(", ", squares));
+        }
     }
 }
