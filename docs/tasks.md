@@ -187,7 +187,7 @@ Goal: the API runs on .NET 10 in UK South with no change to the search, every me
 
 Goal: one move generator follows the house rules, defects 1, 2, 5, 9 and 10 are fixed, and all request validation is in place.
 
-- [ ] **T10 — Add the new move generator beside the old code**
+- [x] **T10 — Add the new move generator beside the old code**
   - Refs: spec 2.1, spec 2.2, spec 6.1.3, spec 6.2 examples 3, 4, 9, 17–20, spec 6.5 items 1, 6, 7, plan 3.1, plan 3.2, plan 3.3, plan 3.4, risk 9, tests 8–12
   - Depends on: T8
   - Done when:
@@ -197,8 +197,7 @@ Goal: one move generator follows the house rules, defects 1, 2, 5, 9 and 10 are 
   - Verify: the standard test command
   - Notes: Do not change the house rules (spec 2.1). Captures stay optional, a chain may stop after any jump, a man cannot capture a king, and a king may land back on its start square.
     - The engine files start with `#nullable enable`, because the service project has no `Nullable` setting. `Generate` and `HasMove` throw for a player other than 1 or 2, or a board that is not 64 squares.
-    - Test 12 (`MoveGeneratorComparisonTests`) compares 7 example positions and the positions from 60 games of seeded random moves, about 14,400 in all. It skips the 10 played positions where a king captures 4 or more pieces, because only those can loop and crash the old code (defect 9). It also checks `HasMove` against `Generate` for both players on every played position.
-    - Its differences: 1 for defect 10 (example 19) and 25 for defect 1. The test asserts both counts. Each defect 1 move starts with the king's up-right jump. The old code gives no move that the new code does not.
+    - Test 12 compares about 14,400 positions and finds 1 defect 10 and 25 defect 1 differences, listed in pull request 28. It skips positions that could crash the old code (defect 9).
     - T11 deletes `MoveGeneratorComparisonTests` with the old code.
 
 - [ ] **T11 — Switch to the new move generator and remove the old code**
