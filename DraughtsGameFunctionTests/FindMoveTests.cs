@@ -111,7 +111,7 @@ namespace DraughtsGameFunctionTests
         public void FindAvailableMoves_ManCanCaptureDownLeftOnly_ReturnsThatCapture()
         {
             //Associate
-            Int64[,] board = new Int64[,]
+            long[,] board = new long[,]
             {
                 { 0, 2, 0, 2, 0, 2, 0, 2 },
                 { 2, 0, 2, 0, 2, 0, 2, 0 },
@@ -135,7 +135,7 @@ namespace DraughtsGameFunctionTests
         public void FindAvailableMoves_ManCanDoubleJump_ReturnsBothStops()
         {
             //Associate
-            Int64[,] board = new Int64[,]
+            long[,] board = new long[,]
             {
                 { 0, 2, 0, 2, 0, 2, 0, 2 },
                 { 2, 0, 2, 0, 2, 0, 2, 0 },
@@ -159,7 +159,7 @@ namespace DraughtsGameFunctionTests
         public void FindAvailableMoves_KingCanCaptureUpRight_ReturnsThatCapture()
         {
             //Associate
-            Int64[,] board = new Int64[,]
+            long[,] board = new long[,]
             {
                 { 0, 2, 0, 2, 0, 2, 0, 2 },
                 { 2, 0, 2, 0, 2, 0, 2, 0 },
@@ -184,7 +184,7 @@ namespace DraughtsGameFunctionTests
         public void FindAvailableMoves_PlayerNotOneOrTwo_ReturnsNoMoves(long player)
         {
             //Associate
-            Int64[,] board = new Int64[,]
+            long[,] board = new long[,]
             {
                 { 0, 2, 0, 2, 0, 2, 0, 2 },
                 { 2, 0, 2, 0, 2, 0, 2, 0 },

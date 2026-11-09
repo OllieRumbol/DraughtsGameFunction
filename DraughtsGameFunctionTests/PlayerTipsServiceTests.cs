@@ -49,7 +49,7 @@ namespace DraughtsGameFunctionTests
             PlayerTipsService playerTipsService = new PlayerTipsService();
             GetPlayerTips getPlayerTips = new GetPlayerTips
             {
-                Board = new Int64[,]
+                Board = new long[,]
                 {
                     { 0, 5, 0, 5, 0, 5, 0, 5 },
                     { 5, 0, 4, 0, 5, 0, 5, 0 },

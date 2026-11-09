@@ -215,6 +215,9 @@ Goal: one move generator follows the house rules, defects 1, 2, 5, 9 and 10 are 
     - `Takes` now lists the captured squares in board order, not in jump order. The web app removes them all before it moves the piece (`CompleteBoard.js`, `player2Go`), so the order does not matter.
     - The moves now come in a different order. Normal and Hard keep the last of several equal moves (defect 6), so they can choose a different move from the same position than before. No contract covers this, and T17 replaces the old services (defect 6).
     - `TreeTake` was in the models project, so it is removed from there.
+    - `Board.FromRows` reads a value outside 0 to 6 as a blocked square, as the old code did, until T12 rejects it. A plain cast could turn 2^32 + 1 into a man.
+    - For T12: the old code looked only at dark squares. The new code looks at all 64, so a piece that a request puts on a light square can move if the light squares next to it are 5 or 6. Rule 4 does not reject this, and the web app never sends it.
+    - Test 12 is gone, so `HasMove_PositionsFromRandomGames_AgreesWithGenerate` keeps its check of `HasMove` against `Generate`.
 
 - [ ] **T12 — Add the remaining validation and the no-move error**
   - Refs: spec 3 goal 4, spec 4.1 defect 2, spec 6.1.2 rules 4–5, spec 6.1.4 item 3, spec 6.1.5 item 3, spec 6.2 example 5, spec 6.5 item 2, plan 3.5, plan 4, tests 25, 28
