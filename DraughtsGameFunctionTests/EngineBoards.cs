@@ -41,18 +41,6 @@ internal static class EngineBoards
         { 1, 0, 1, 0, 1, 0, 1, 0 },
     };
 
-    public static long[,] ToRows(int[] board)
-    {
-        var rows = new long[Board.Size, Board.Size];
-
-        for (var square = 0; square < Board.SquareCount; square++)
-        {
-            rows[Board.Row(square), Board.Column(square)] = board[square];
-        }
-
-        return rows;
-    }
-
     public static Move Move((int Row, int Column) from, (int Row, int Column) to, params (int Row, int Column)[] captured)
     {
         var mask = 0UL;

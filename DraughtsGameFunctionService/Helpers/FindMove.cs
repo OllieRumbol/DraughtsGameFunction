@@ -1,219 +1,61 @@
 ﻿using DraughtsGameFunctionModels.Service;
-using System;
+using DraughtsGameFunctionService.Engine;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Numerics;
 
 namespace DraughtsGameFunctionService.Helpers
 {
     public class FindMove
     {
-        private static readonly List<Piece> EmptyList = new List<Piece>();
-
-        public static List<NextMove> FindAvailableMoves(Int64[,] board, Int64 player)
+        /// <summary>
+        /// Every legal move for the player, from <see cref="MoveGenerator"/> (plan section 3.3).
+        /// A player other than 1 or 2 has no moves, as before. Spec section 6.1.2, rule 5, makes that an error from T12.
+        /// </summary>
+        public static List<NextMove> FindAvailableMoves(long[,] board, long player)
         {
-            List<NextMove> results = new List<NextMove>();
-            for (Int64 row = 0; row < board.GetLength(0); row++)
+            var results = new List<NextMove>();
+            if (player is not (1 or 2))
             {
-                // Skip over pieces that cant be played
-                for (Int64 column = 1 - (row % 2); column < board.GetLength(1); column += 2)
-                {
-                    Int64 piece = board[row, column];
+                return results;
+            }
 
-                    if(piece == 5)
-                    {
-                        continue;
-                    }
-                    else if (piece == 1 && player == 1)
-                    {
-                        Boolean canMoveUpAndLeft = CheckMove.CheckMoveUpLeft(board, row, column);
-                        Boolean canMoveUpAndRight = CheckMove.CheckMoveUpRight(board, row, column);
-                        if (canMoveUpAndLeft)
-                        {
-                            results.Add(new NextMove
-                            {
-                                CurrentHeight = row,
-                                CurrentWidth = column,
-                                NextHeight = row - 1,
-                                NextWidth = column - 1,
-                                Takes = EmptyList
-                            });
-                        }
-                        if (canMoveUpAndRight)
-                        {
-                            results.Add(new NextMove
-                            {
-                                CurrentHeight = row,
-                                CurrentWidth = column,
-                                NextHeight = row - 1,
-                                NextWidth = column + 1,
-                                Takes = EmptyList
-                            });
-                        }
-                        if (canMoveUpAndLeft == false || canMoveUpAndRight == false)
-                        {
-                            Tree resultTree = CheckMove.CheckTakeUp(board, row, column, new Int64[] { 2 }, new Tree(new TreeTake
-                            {
-                                CurrentHeight = row,
-                                CurrentWidth = column,
-                            }));
-                            if (resultTree.Left != null || resultTree.Right != null)
-                            {
-                                List<List<TreeTake>> treeArray = Tree.TreeToArray(resultTree);
-                                results.AddRange(ProcessTreeArray(treeArray));
-                            }
-                        }
-                    }
-                    else if (piece == 2 && player == 2)
-                    {
-                        Boolean canMoveDownAndLeft = CheckMove.CheckMoveDownLeft(board, row, column);
-                        Boolean canMoveDownAndRight = CheckMove.CheckMoveDownRight(board, row, column);
+            var moves = new List<Move>();
+            MoveGenerator.Generate(Board.FromRows(board), (int)player, moves);
 
-                        if (canMoveDownAndLeft)
-                        {
-                            results.Add(new NextMove
-                            {
-                                CurrentHeight = row,
-                                CurrentWidth = column,
-                                NextHeight = row + 1,
-                                NextWidth = column - 1,
-                                Takes = EmptyList
-                            });
-                        }
-                        if (canMoveDownAndRight)
-                        {
-                            results.Add(new NextMove
-                            {
-                                CurrentHeight = row,
-                                CurrentWidth = column,
-                                NextHeight = row + 1,
-                                NextWidth = column + 1,
-                                Takes = EmptyList
-                            });
-                        }
-                        if (canMoveDownAndLeft == false || canMoveDownAndRight == false)
-                        {
-                            Tree resultTree = CheckMove.CheckTakeDown(board, row, column, new Int64[] { 1 }, new Tree(new TreeTake
-                            {
-                                CurrentHeight = row,
-                                CurrentWidth = column,
-                            }));
-                            if (resultTree.Left != null || resultTree.Right != null)
-                            {
-                                List<List<TreeTake>> treeArray = Tree.TreeToArray(resultTree);
-                                results.AddRange(ProcessTreeArray(treeArray));
-                            }
-                        }
-                    }
-                    else if ((piece == 3 && player == 1) || (piece == 4 && player == 2))
-                    {
-                        Boolean canMoveUpAndLeft = CheckMove.CheckMoveUpLeft(board, row, column);
-                        Boolean canMoveUpAndRight = CheckMove.CheckMoveUpRight(board, row, column);
-                        Boolean canMoveDownAndLeft = CheckMove.CheckMoveDownLeft(board, row, column);
-                        Boolean canMoveDownAndRight = CheckMove.CheckMoveDownRight(board, row, column);
-
-                        if (canMoveUpAndLeft)
-                        {
-                            results.Add(new NextMove
-                            {
-                                CurrentHeight = row,
-                                CurrentWidth = column,
-                                NextHeight = row - 1,
-                                NextWidth = column - 1,
-                                Takes = EmptyList
-                            });
-                        }
-                        if (canMoveUpAndRight)
-                        {
-                            results.Add(new NextMove
-                            {
-                                CurrentHeight = row,
-                                CurrentWidth = column,
-                                NextHeight = row - 1,
-                                NextWidth = column + 1,
-                                Takes = EmptyList
-                            });
-                        }
-                        if (canMoveDownAndLeft)
-                        {
-                            results.Add(new NextMove
-                            {
-                                CurrentHeight = row,
-                                CurrentWidth = column,
-                                NextHeight = row + 1,
-                                NextWidth = column - 1,
-                                Takes = EmptyList
-                            });
-                        }
-                        if (canMoveDownAndRight)
-                        {
-                            results.Add(new NextMove
-                            {
-                                CurrentHeight = row,
-                                CurrentWidth = column,
-                                NextHeight = row + 1,
-                                NextWidth = column + 1,
-                                Takes = EmptyList
-                            });
-                        }
-                        if (canMoveUpAndLeft == false || canMoveUpAndRight == false || canMoveDownAndLeft == false || canMoveDownAndRight == false)
-                        {
-                            Int64[] countersToTake = piece == 3 ? new Int64[] { 2, 4 } : new Int64[] { 1, 3 };
-                            KingTree resultTree = CheckMove.CheckKingTake(board, row, column, row, column, countersToTake, new KingTree(new TreeTake
-                            {
-                                CurrentHeight = row,
-                                CurrentWidth = column,
-                            }));
-                            if (resultTree.DownLeft != null || resultTree.DownRight != null || resultTree.UpLeft != null || resultTree.UpRight != null)
-                            {
-                                List<List<TreeTake>> treeArray = KingTree.KingTreeToArray(resultTree);
-                                results.AddRange(ProcessTreeArray(treeArray));
-                            }
-                        }
-                    }
-                }
+            foreach (var move in moves)
+            {
+                results.Add(ToNextMove(move));
             }
 
             return results;
         }
 
-        public static List<NextMove> ProcessTreeArray(List<List<TreeTake>> treeArray)
+        private static NextMove ToNextMove(Move move)
         {
-            List<NextMove> takeMoves = new List<NextMove>();
-
-            foreach(List<TreeTake> takes in treeArray)
+            return new NextMove
             {
-                takeMoves.AddRange(ProcessTakeMove(takes));
-            }
-
-            return takeMoves;
+                CurrentHeight = Board.Row(move.From),
+                CurrentWidth = Board.Column(move.From),
+                NextHeight = Board.Row(move.To),
+                NextWidth = Board.Column(move.To),
+                Takes = ToPieces(move.Captured),
+            };
         }
 
-        public static List<NextMove> ProcessTakeMove(List<TreeTake> takeMoves)
+        // The captured squares come out in board order, not in the order of the jumps. The web app removes them all
+        // at once, so the order does not matter (CompleteBoard.js, player2Go).
+        private static List<Piece> ToPieces(ulong captured)
         {
-            List<NextMove> results = new List<NextMove>();
+            var pieces = new List<Piece>();
 
-            List<Piece> takes = new List<Piece>();
-
-            foreach(TreeTake take in takeMoves.Skip(1))
+            while (captured != 0)
             {
-                takes.Add(new Piece
-                {
-                    Height = take.TakeHeight,
-                    Width = take.TakeWidth
-                });
-
-                results.Add(new NextMove
-                {
-                    CurrentHeight = takeMoves.First().CurrentHeight,
-                    CurrentWidth = takeMoves.First().CurrentWidth,
-                    NextHeight = take.CurrentHeight,
-                    NextWidth = take.CurrentWidth,
-                    Takes = new List<Piece>(takes)
-                });
+                var square = BitOperations.TrailingZeroCount(captured);
+                pieces.Add(new Piece { Height = Board.Row(square), Width = Board.Column(square) });
+                captured &= captured - 1;
             }
 
-            return results;
+            return pieces;
         }
     }
 }
