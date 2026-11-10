@@ -245,6 +245,10 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - Tests 13, 19 and 20 pass.
   - Verify: the standard test command
   - Notes: Test 13 needs a plain minimax written in the test project.
+    - For T14: `GameTreeSearch` takes `TimeProvider` and the tie breaker, as plan 3.3 says, but does not read them yet. `Search` needs `MaxDepth` of 1 or more and throws without it.
+    - For T16: `Search` throws when the player has no legal move, so `ComputerPlayer` checks first. The root is not checked for the end of the game; the caller only searches a position the game has not ended in.
+    - For T15: there is no move ordering yet. The root must keep searching in generator order, or keep each move's generator index, so that ties still go to the first move.
+    - The slowest-loss position in test 19 came from a probe that searched random 4-piece positions (deleted). The tie position in test 20 is built by hand.
 
 - [ ] **T14 — Add the time limit, iterative deepening and ties**
   - Refs: spec 6.1.5 items 7–9, spec 6.5 items 3, 4, plan 3.3, plan 3.5, plan 3.7, plan 4, plan 7.1, risk 10, tests 14, 16, 18, 33
