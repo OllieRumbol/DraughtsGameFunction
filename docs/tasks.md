@@ -226,6 +226,10 @@ Goal: one move generator follows the house rules, defects 1, 2, 5, 9 and 10 are 
     - Tests 25 and 28 pass.
   - Verify: the standard test command
   - Notes:
+    - The owner approved on 2026-11-10 that a `Depth` missing or less than 1, for `Version` 2 or 3, returns 400 `Depth must be 1 or more.` It is spec 6.1.2 rule 7 and a plan 4 row. For T17: remove it when `Depth` is no longer read.
+    - Until stage 2, Easy plays as the request's `Player`, so the no-move message names that player. A `Player` other than 1 or 2 counts as having no legal moves; before, Easy threw and returned 500.
+    - `RequestReader.MessageFor` now follows plan 3.5: an inner `FormatException` or `InvalidOperationException` is a wrong value at its path. Only `$.Board` and `$.TipFor` have their own message; T17 adds `$.Version` and `$.Difficulty`.
+    - Test 28 replaces `Run_NoTipFor_ReturnsEmptyListAsToday`.
 
 ## Phase 3 — Search
 

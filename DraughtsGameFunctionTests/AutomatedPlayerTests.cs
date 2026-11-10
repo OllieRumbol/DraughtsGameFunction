@@ -111,6 +111,46 @@ public class AutomatedPlayerTests
         TestHttp.AssertBadRequest(response, expectedMessage);
     }
 
+    // Test 25: spec section 6.2, example 5, and section 6.5, item 2 (defect 2).
+    [TestMethod]
+    [DataRow(1, "[[0,5,0,5,0,5,0,5],[5,0,5,0,5,0,5,0],[0,5,0,5,0,5,0,5],[5,0,5,0,5,0,5,0],[0,5,0,5,0,5,0,5],[1,0,1,0,1,0,1,0],[0,1,0,1,0,1,0,1],[1,0,1,0,1,0,1,0]]", DisplayName = "Easy, no player 2 pieces")]
+    [DataRow(2, "[[0,5,0,5,0,5,0,5],[5,0,5,0,5,0,5,0],[0,5,0,5,0,5,0,5],[5,0,5,0,5,0,5,0],[0,5,0,5,0,5,0,5],[1,0,1,0,1,0,1,0],[0,1,0,1,0,1,0,1],[1,0,1,0,1,0,1,0]]", DisplayName = "Normal, no player 2 pieces")]
+    [DataRow(3, "[[0,5,0,5,0,5,0,5],[5,0,5,0,5,0,5,0],[0,5,0,5,0,5,0,5],[5,0,5,0,5,0,5,0],[0,5,0,5,0,5,0,5],[1,0,1,0,1,0,1,0],[0,1,0,1,0,1,0,1],[1,0,1,0,1,0,1,0]]", DisplayName = "Hard, no player 2 pieces")]
+    [DataRow(2, "[[0,5,0,5,0,5,0,5],[5,0,5,0,5,0,5,0],[0,5,0,5,0,5,0,5],[5,0,5,0,5,0,5,0],[0,5,0,5,0,5,0,5],[5,0,5,0,5,0,5,0],[0,2,0,5,0,5,0,5],[3,0,3,0,5,0,5,0]]", DisplayName = "Normal, a player 2 man blocked by two kings")]
+    public async Task Run_PlayerTwoHasNoLegalMove_ReturnsBadRequest(int version, string board)
+    {
+        var body = $$"""{ "Version": {{version}}, "Board": {{board}}, "Depth": 4, "Player": 2 }""";
+
+        var response = await PostAsync(body);
+
+        TestHttp.AssertBadRequest(response, "Player 2 has no legal moves.");
+    }
+
+    // Test 28: spec section 6.1.2, rule 4.
+    [TestMethod]
+    public async Task Run_BoardValueOutsideZeroToSix_ReturnsBadRequest()
+    {
+        var body = $$"""{ "Version": 2, "Board": [[0,2,0,2,0,2,0,2],[2,0,2,0,2,0,2,0],[0,2,0,2,0,2,0,2],[5,0,5,0,7,0,5,0],[0,5,0,5,0,5,0,5],[1,0,1,0,1,0,1,0],[0,1,0,1,0,1,0,1],[1,0,1,0,1,0,1,0]], "Depth": 4, "Player": 2 }""";
+
+        var response = await PostAsync(body);
+
+        TestHttp.AssertBadRequest(response, "Board values must be from 0 to 6.");
+    }
+
+    // Plan section 4: a search of depth 0 has no move to return (defect 2). The owner approved this on 2026-11-10.
+    [TestMethod]
+    [DataRow(2, """, "Depth": 0""", DisplayName = "Normal, Depth 0")]
+    [DataRow(3, """, "Depth": -1""", DisplayName = "Hard, Depth -1")]
+    [DataRow(2, "", DisplayName = "Normal, no Depth")]
+    public async Task Run_SearchWithDepthBelowOne_ReturnsBadRequest(int version, string depth)
+    {
+        var body = $$"""{ "Version": {{version}}, "Board": {{TestHttp.StartingBoard}}{{depth}}, "Player": 2 }""";
+
+        var response = await PostAsync(body);
+
+        TestHttp.AssertBadRequest(response, "Depth must be 1 or more.");
+    }
+
     // A local run showed that a client which disconnects during the upload causes this exception.
     [TestMethod]
     public async Task Run_ClientStopsSendingTheBody_ReturnsBadRequest()

@@ -285,6 +285,7 @@ A request is not valid when any of these is true. Each rule starts at the stage 
 | 4 | `Board` contains a value other than 0 to 6. | Stage 2 at the latest. It may start earlier, with the move-generation fixes. |
 | 5 | For GetPotentialMoves: `TipFor` is missing, or is not 1 or 2. | Stage 2 at the latest. It may start earlier, with the move-generation fixes. Until then, a missing `TipFor` returns an empty list, as it does today. |
 | 6 | For GetNextMove: neither `Difficulty` nor `Version` is present, or the one that is used has a value not allowed by section 6.1.1. The message lists the allowed values, for example `Difficulty must be one of: easy, normal, hard`. | Stage 2. In stage 1, an unknown `Version` is rejected as it is today (section 5.1). |
+| 7 | For GetNextMove with `Version` 2 or 3: `Depth` is missing or less than 1. | From the move-generation fixes until stage 2, when `Depth` is no longer read. Added on 2026-11-10, with the owner's approval: a search of depth 0 has no move to return (section 4.1, defect 2). |
 
 The API does not check where pieces stand. For example, a piece on a light square is not rejected.
 
