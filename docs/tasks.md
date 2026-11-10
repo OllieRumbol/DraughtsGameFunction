@@ -216,7 +216,7 @@ Goal: one move generator follows the house rules, defects 1, 2, 5, 9 and 10 are 
     - `Takes` is in board order, and moves come in a new order. The web app clears all takes at once (`CompleteBoard.js`), so neither matters.
     - Evidence and reviews: pull request 29.
 
-- [ ] **T12 — Add the remaining validation and the no-move error**
+- [x] **T12 — Add the remaining validation and the no-move error**
   - Refs: spec 3 goal 4, spec 4.1 defect 2, spec 6.1.2 rules 4–5, spec 6.1.4 item 3, spec 6.1.5 item 3, spec 6.2 example 5, spec 6.5 item 2, plan 3.5, plan 4, tests 25, 28
   - Depends on: T11
   - Done when:
@@ -226,10 +226,10 @@ Goal: one move generator follows the house rules, defects 1, 2, 5, 9 and 10 are 
     - Tests 25 and 28 pass.
   - Verify: the standard test command
   - Notes:
-    - The owner approved on 2026-11-10 that a `Depth` missing or less than 1, for `Version` 2 or 3, returns 400 `Depth must be 1 or more.` It is spec 6.1.2 rule 7 and a plan 4 row. For T17: remove it when `Depth` is no longer read.
-    - Until stage 2, Easy plays as the request's `Player`, so the no-move check applies to Easy only when `Player` is 2, as the web app always sends. For T17: Easy with another `Player` and no move still returns 500, until Easy always plays as player 2.
-    - `RequestReader.MessageFor` now follows plan 3.5: an inner `FormatException` or `InvalidOperationException` is a wrong value at its path. Only `$.Board` and `$.TipFor` have their own message; T17 adds `$.Version` and `$.Difficulty`.
-    - Test 28 replaces `Run_NoTipFor_ReturnsEmptyListAsToday`.
+    - The owner approved on 2026-11-10 that a `Depth` missing or less than 1, for `Version` 2 or 3, returns 400 `Depth must be 1 or more.` (spec 6.1.2 rule 7, plan 4). For T17: remove it when `Depth` is no longer read.
+    - For T17: until stage 2, Easy plays as the request's `Player`, so the no-move check covers Easy only when `Player` is 2. Easy with another `Player` and no move still returns 500.
+    - `RequestReader.MessageFor` follows plan 3.5. Only `$.Board` and `$.TipFor` have their own message; T17 adds `$.Version` and `$.Difficulty`.
+    - Evidence and reviews: pull request 30.
 
 ## Phase 3 — Search
 
