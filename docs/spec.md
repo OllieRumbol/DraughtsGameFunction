@@ -363,7 +363,7 @@ Items 1 and 2 apply from stage 1. Item 3 applies once defect 2 (section 4.1) is 
 | --- | --- |
 | HTTP 200, `successful: true` | The result is in `nextMove` or `potentialMoves`. |
 | HTTP 400, `successful: false` | The request was not valid, or the computer has no legal move. `errorMessage` says which. |
-| HTTP 500, `successful: false` | An unexpected fault. `errorMessage` is a general message, with no internal detail. In stage 1 this includes a fault in the current search, such as a missing `Depth`. Today those return HTTP 400. The web app shows the same general message for both. |
+| HTTP 500, `successful: false` | An unexpected fault. `errorMessage` is a general message, with no internal detail. Before the move-generation fixes, this includes a fault in the current search, such as a missing `Depth`. The old API returned HTTP 400 for those. The web app shows the same general message for both. |
 
 ### 6.4 Non-functional requirements
 

@@ -13,6 +13,7 @@ public static class AutomatedPlayer
 {
     private const string UnknownVersionMessage = "No version in body of request";
     private const string InvalidDepthMessage = "Depth must be 1 or more.";
+    private const string NoMoveMessage = "Player 2 has no legal moves.";
 
     [Function("GetNextMove")]
     public static async Task<IResult> Run(
@@ -52,28 +53,18 @@ public static class AutomatedPlayer
             return BadRequest(InvalidDepthMessage);
         }
 
-        // Until step 3, Easy plays as the player in the request, and Normal and Hard as player 2 (spec section 6.1.5, item 1).
-        var player = getNextMove.Version == 1 ? getNextMove.Player : 2;
-        if (!HasLegalMove(getNextMove.Board, player))
+        // Spec section 6.1.5, item 3 (defect 2). Until step 3, Easy plays as the player in the request
+        // (item 1), so the check applies to Easy only when that player is 2, as the web app always sends.
+        var playsAsPlayer2 = getNextMove.Version != 1 || getNextMove.Player == 2;
+        if (playsAsPlayer2 && !MoveGenerator.HasMove(Board.FromRows(getNextMove.Board), player: 2))
         {
-            return BadRequest($"Player {player} has no legal moves.");
+            return BadRequest(NoMoveMessage);
         }
 
         NextMove nextMove = service.GetNextMoveForAutomatedPlayer(getNextMove);
         var response = new AutomatedPlayerResponse { Successful = true, NextMove = nextMove };
 
         return Results.Json(response, ApiJsonOptions.Default);
-    }
-
-    // A player other than 1 or 2 has no pieces, so it has no legal moves either.
-    private static bool HasLegalMove(long[,] board, long player)
-    {
-        if (player is not (1 or 2))
-        {
-            return false;
-        }
-
-        return MoveGenerator.HasMove(Board.FromRows(board), (int)player);
     }
 
     private static IResult BadRequest(string? errorMessage)

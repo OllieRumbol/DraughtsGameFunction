@@ -126,6 +126,19 @@ public class AutomatedPlayerTests
         TestHttp.AssertBadRequest(response, "Player 2 has no legal moves.");
     }
 
+    // Until step 3, Easy plays as the request's Player (spec section 6.1.5, item 1), so player 2 having no move does
+    // not stop Easy playing as player 1.
+    [TestMethod]
+    public async Task Run_EasyAsPlayerOneWhenPlayerTwoHasNoMove_ReturnsMove()
+    {
+        var body = """{ "Version": 1, "Board": [[0,5,0,5,0,5,0,5],[5,0,5,0,5,0,5,0],[0,5,0,5,0,5,0,5],[5,0,5,0,5,0,5,0],[0,5,0,5,0,5,0,5],[1,0,1,0,1,0,1,0],[0,1,0,1,0,1,0,1],[1,0,1,0,1,0,1,0]], "Player": 1 }""";
+
+        var response = await PostAsync(body);
+
+        Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
+        Assert.AreEqual(5, response.Json.GetProperty("nextMove").GetProperty("currentHeight").GetInt64());
+    }
+
     // Test 28: spec section 6.1.2, rule 4.
     [TestMethod]
     public async Task Run_BoardValueOutsideZeroToSix_ReturnsBadRequest()

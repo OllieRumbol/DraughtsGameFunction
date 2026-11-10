@@ -74,6 +74,7 @@ public class PlayerTipsTests
     [DataRow(""", "TipFor": 0""", DisplayName = "TipFor 0")]
     [DataRow(", \"TipFor\": \"abc\"", DisplayName = "TipFor that is not a number")]
     [DataRow(""", "TipFor": true""", DisplayName = "TipFor true")]
+    [DataRow(""", "TipFor": [1]""", DisplayName = "TipFor that is an array")]
     [DataRow(""", "tipfor": 1.5""", DisplayName = "A lower-case TipFor that is not whole")]
     [DataRow("", DisplayName = "No TipFor")]
     public async Task Run_TipForIsNotOneOrTwo_ReturnsBadRequest(string tipFor)

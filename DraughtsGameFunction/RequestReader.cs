@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http;
 namespace DraughtsGameFunction;
 
 /// <summary>
-/// Reads a request body, used by both functions.
+/// Reads a request body and checks its board, used by both functions.
 /// </summary>
 internal static class RequestReader
 {
