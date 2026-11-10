@@ -33,7 +33,7 @@ public class GameTreeSearchTests
         {
             foreach (var player in new[] { 1, 2 })
             {
-                if (LegalMoves(board, player).Count < 2)
+                if (Generate(board, player).Count < 2)
                 {
                     continue;
                 }
@@ -123,7 +123,7 @@ public class GameTreeSearchTests
         var result = NewSearch().Search(board, player: 2, new SearchLimits(MaxDepth: 3, TimeLimit: null));
 
         // Assert
-        Assert.HasCount(2, LegalMoves(board, player: 2));
+        Assert.HasCount(2, Generate(board, player: 2));
         Assert.AreEqual(-Win + 1, result.Score);
     }
 
@@ -161,7 +161,7 @@ public class GameTreeSearchTests
 
         // Assert
         Assert.AreEqual(1, Evaluator.Evaluate(board, player: 2), "Player 2 should be one point ahead.");
-        Assert.HasCount(2, LegalMoves(board, player: 2));
+        Assert.HasCount(2, Generate(board, player: 2));
         Assert.AreEqual(Describe(Move((4, 1), (5, 2))), Describe(result.Move));
         Assert.AreEqual(1, result.CompletedDepth);
         Assert.AreEqual(0, result.Score);
@@ -182,19 +182,29 @@ public class GameTreeSearchTests
     }
 
     [TestMethod]
-    [DataRow(null, null, DisplayName = "Neither limit")]
+    public void Search_NeitherLimitSet_Throws()
+    {
+        // Arrange
+        var board = Board.FromRows(StartingRows());
+
+        // Act and assert
+        Assert.ThrowsExactly<ArgumentException>(() => NewSearch().Search(board, 2, new SearchLimits(null, null)));
+    }
+
+    [TestMethod]
     [DataRow(0, null, DisplayName = "Depth 0")]
     [DataRow(GameTreeSearch.MaxPly + 1, null, DisplayName = "Depth above the cap")]
     [DataRow(null, 0, DisplayName = "Time limit 0")]
     [DataRow(4, -1, DisplayName = "Negative time limit")]
-    public void Search_LimitsMissingOrOutOfRange_Throws(int? maxDepth, int? timeLimitMilliseconds)
+    public void Search_LimitOutOfRange_Throws(int? maxDepth, int? timeLimitMilliseconds)
     {
         // Arrange
         var board = Board.FromRows(StartingRows());
         TimeSpan? timeLimit = timeLimitMilliseconds is int milliseconds ? TimeSpan.FromMilliseconds(milliseconds) : null;
 
         // Act and assert
-        Assert.ThrowsExactly<ArgumentException>(() => NewSearch().Search(board, 2, new SearchLimits(maxDepth, timeLimit)));
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(
+            () => NewSearch().Search(board, 2, new SearchLimits(maxDepth, timeLimit)));
     }
 
     // Test 14: when several moves share the top score, repeated searches return each of them, and never a move with
@@ -222,33 +232,59 @@ public class GameTreeSearchTests
         CollectionAssert.AreEquivalent(tiedMoves.Select(Describe).ToList(), returned.Select(Describe).ToList());
     }
 
-    // Test 16: the fake clock moves on 1 ms each time it is read. The search must stop at the first reading at or past
-    // the limit, part way through a depth, and return what the last finished depth returns on its own.
+    // Test 16 and spec section 6.5, item 3: the fake clock moves on 1 ms each time it is read, so each limit passes part
+    // way through a depth. For every position, player and limit, the search must stop at the first reading at or past
+    // the limit, and return exactly what its last finished depth returns on its own. A search that kept the best move
+    // so far from the unfinished depth would differ in some of these cases. One position has only kings.
     [TestMethod]
     public void Search_TimeLimitPasses_ReturnsLastFinishedDepthsMove()
     {
         // Arrange
-        const int maxDepth = 12;
-        var board = Board.FromRows(StartingRows());
+        const int maxDepth = 20;
         var step = TimeSpan.FromMilliseconds(1);
-        var timeLimit = TimeSpan.FromMilliseconds(30);
-        var clock = new FakeTimeProvider { AutoAdvanceAmount = step };
-        var search = new GameTreeSearch(Evaluator, clock, tieBreaker: null);
-        var start = clock.GetUtcNow();
+        var positions = PlayedPositions(seed: 16, gameCount: 4, pliesBetweenPositions: 10).Append(OnlyKings()).ToList();
+        var mismatches = new List<string>();
+        var compared = 0;
 
-        // Act
-        var result = search.Search(board, player: 2, new SearchLimits(maxDepth, timeLimit));
-        var elapsed = clock.GetUtcNow() - start;
+        foreach (var board in positions)
+        {
+            foreach (var player in new[] { 1, 2 })
+            {
+                if (Generate(board, player).Count < 2)
+                {
+                    continue;
+                }
 
-        // Assert
-        // The readings here, at the start of the search, and at and past the limit, account for the other 2 ms.
-        Assert.IsLessThanOrEqualTo(timeLimit + 2 * step, elapsed, "The search read the clock after the limit passed.");
-        Assert.IsGreaterThan(1, result.CompletedDepth);
-        Assert.IsLessThan(maxDepth, result.CompletedDepth);
+                foreach (var milliseconds in new[] { 5, 10, 20, 40 })
+                {
+                    var timeLimit = TimeSpan.FromMilliseconds(milliseconds);
+                    var clock = new FakeTimeProvider { AutoAdvanceAmount = step };
+                    var search = new GameTreeSearch(Evaluator, clock, tieBreaker: null);
+                    var start = clock.GetUtcNow();
 
-        var lastFinishedDepth = NewSearch().Search(board, player: 2, new SearchLimits(result.CompletedDepth, null));
-        Assert.AreEqual(Describe(lastFinishedDepth.Move), Describe(result.Move));
-        Assert.AreEqual(lastFinishedDepth.Score, result.Score);
+                    // Act
+                    var result = search.Search(board, player, new SearchLimits(maxDepth, timeLimit));
+                    var elapsed = clock.GetUtcNow() - start;
+                    var lastFinishedDepth = result.CompletedDepth == 0
+                        ? new SearchResult(Generate(board, player)[0], 0, 0)
+                        : NewSearch().Search(board, player, new SearchLimits(result.CompletedDepth, null));
+                    compared++;
+
+                    // Assert
+                    // The test reads the clock once before the search, and the search reads it once as it starts.
+                    // So a search that stops at the first reading at or past the limit leaves the clock 2 ms later.
+                    if (elapsed > timeLimit + 2 * step || result != lastFinishedDepth)
+                    {
+                        mismatches.Add($"Player {player}, {milliseconds} ms: {elapsed.TotalMilliseconds} ms on the clock, "
+                            + $"search {Describe(result.Move)} = {result.Score} at depth {result.CompletedDepth}, "
+                            + $"last finished depth {Describe(lastFinishedDepth.Move)} = {lastFinishedDepth.Score}, board {Text(board)}");
+                    }
+                }
+            }
+        }
+
+        Assert.IsEmpty(mismatches, string.Join(Environment.NewLine, mismatches.Take(5)));
+        Assert.IsGreaterThan(30, compared, "Too few searches were compared to trust the result.");
     }
 
     // Plan section 4: if the limit passes before depth 1 finishes, the first legal move is returned. Here the fake
@@ -266,18 +302,19 @@ public class GameTreeSearchTests
         var result = search.Search(board, player: 2, new SearchLimits(MaxDepth: null, timeLimit));
 
         // Assert
-        Assert.AreEqual(Describe(LegalMoves(board, player: 2)[0]), Describe(result.Move));
+        Assert.AreEqual(Describe(Generate(board, player: 2)[0]), Describe(result.Move));
         Assert.AreEqual(0, result.CompletedDepth);
         Assert.AreEqual(0, result.Score);
     }
 
     // Test 18 and spec section 6.2, example 15: one legal move is returned at once. The evaluator counts its calls,
-    // and none is made. The man's only move is to (6,1).
+    // and none is made. The man's only move is to (6,1). After it, both players can still move, so any search
+    // would call the evaluator.
     [TestMethod]
     public void Search_OneLegalMove_ReturnsItWithoutSearching()
     {
         // Arrange
-        var board = Create((5, 0, Board.Player2Man), (7, 0, Board.Player1King), (7, 2, Board.Player1King));
+        var board = Create((5, 0, Board.Player2Man), (2, 7, Board.Player1Man));
         var evaluator = new CountingEvaluator();
         var search = new GameTreeSearch(evaluator, TimeProvider.System, new Random(18));
 
@@ -341,13 +378,10 @@ public class GameTreeSearchTests
 
     private static GameTreeSearch NewSearch() => new(Evaluator, TimeProvider.System, tieBreaker: null);
 
-    private static List<Move> LegalMoves(int[] board, int player)
-    {
-        var moves = new List<Move>();
-        MoveGenerator.Generate(board, player, moves);
-
-        return moves;
-    }
+    // Three kings each, with no captures available, for spec section 6.5, item 3.
+    private static int[] OnlyKings() => Create(
+        (7, 0, Board.Player1King), (6, 3, Board.Player1King), (5, 6, Board.Player1King),
+        (0, 1, Board.Player2King), (1, 4, Board.Player2King), (2, 7, Board.Player2King));
 
     // Finds the first position from the random games where at least two moves, but not every move, share the top
     // score of plain minimax at this depth.
@@ -357,7 +391,7 @@ public class GameTreeSearchTests
         {
             foreach (var player in new[] { 2, 1 })
             {
-                var moves = LegalMoves(board, player);
+                var moves = Generate(board, player);
                 if (moves.Count == 0)
                 {
                     continue;

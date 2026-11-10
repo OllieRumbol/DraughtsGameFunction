@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DraughtsGameFunctionService.Engine;
 
@@ -86,15 +87,12 @@ public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvid
         }
 
         // The root moves in the order they are searched, by their index in generator order.
-        var searchOrder = new List<int>(rootMoves.Count);
-        for (var index = 0; index < rootMoves.Count; index++)
-        {
-            searchOrder.Add(index);
-        }
+        var searchOrder = Enumerable.Range(0, rootMoves.Count).ToList();
 
         for (var depth = 1; depth <= maxDepth; depth++)
         {
-            if (TimeIsUp())
+            CheckClock();
+            if (_timeIsUp)
             {
                 break;
             }
@@ -257,14 +255,15 @@ public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvid
             throw new ArgumentException("The search needs a maximum depth, a time limit or both.", nameof(limits));
         }
 
-        if (limits.MaxDepth is int depth && (depth < 1 || depth > MaxPly))
+        if (limits.MaxDepth is int depth)
         {
-            throw new ArgumentException($"The maximum depth must be from 1 to {MaxPly}.", nameof(limits));
+            ArgumentOutOfRangeException.ThrowIfLessThan(depth, 1, nameof(limits));
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(depth, MaxPly, nameof(limits));
         }
 
-        if (limits.TimeLimit is TimeSpan timeLimit && timeLimit <= TimeSpan.Zero)
+        if (limits.TimeLimit is TimeSpan timeLimit)
         {
-            throw new ArgumentException("The time limit must be more than zero.", nameof(limits));
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(timeLimit, TimeSpan.Zero, nameof(limits));
         }
 
         return limits.MaxDepth ?? MaxPly;
@@ -285,21 +284,19 @@ public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvid
 
         if (_positionCount % PositionsBetweenClockChecks == 0)
         {
-            TimeIsUp();
+            CheckClock();
         }
 
         return _timeIsUp;
     }
 
-    // Reads the clock, and records when the time limit has passed. With no time limit, it never passes.
-    private bool TimeIsUp()
+    // Reads the clock, and sets _timeIsUp when the time limit has passed. With no time limit, it never passes.
+    private void CheckClock()
     {
         if (_timeLimit is TimeSpan timeLimit && _timeProvider.GetElapsedTime(_startTimestamp) >= timeLimit)
         {
             _timeIsUp = true;
         }
-
-        return _timeIsUp;
     }
 
     private void PrepareBuffers(int[] board, int maxDepth)
