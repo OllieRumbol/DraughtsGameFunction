@@ -235,7 +235,7 @@ Goal: one move generator follows the house rules, defects 1, 2, 5, 9 and 10 are 
 
 Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty`, and the response-time limits are met on the live app.
 
-- [ ] **T13 — Add the alpha-beta search at a fixed depth**
+- [x] **T13 — Add the alpha-beta search at a fixed depth**
   - Refs: spec 2.1 item 6, spec 6.1.5 items 5, 7, 9, spec 6.5 item 9, plan 1.1, plan 3.1, plan 3.2, plan 3.3, plan 3.7, tests 13, 19, 20
   - Depends on: T11
   - Done when:
@@ -244,11 +244,11 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - Wins and losses follow spec section 2.1, item 6, with the fastest win and the slowest loss preferred.
     - Tests 13, 19 and 20 pass.
   - Verify: the standard test command
-  - Notes: Test 13 needs a plain minimax written in the test project.
-    - For T14: `GameTreeSearch` takes `TimeProvider` and the tie breaker, as plan 3.3 says, but does not read them yet. `Search` needs `MaxDepth` from 1 to `MaxPly` (64), and throws `NotSupportedException` for a `TimeLimit`. It allocates its buffers on every call and checks `HasMove` before `Generate` at each node; iterative deepening may want to reuse the buffers.
-    - For T16: `Search` throws when the player has no legal move, so `ComputerPlayer` checks first. The root is not checked for the end of the game; the caller only searches a position the game has not ended in.
-    - For T15: there is no move ordering yet. The root must keep searching in generator order, or keep each move's generator index, so that ties still go to the first move.
-    - The slowest-loss position in test 19 came from a probe that searched random 4-piece positions (deleted). The tie position in test 20 is built by hand.
+  - Notes: Test 13 compares with a plain minimax in the test project (`PlainMinimax.cs`).
+    - For T14: `GameTreeSearch` does not read `TimeProvider` or the tie breaker yet. `Search` needs `MaxDepth` from 1 to `MaxPly` (64) and throws for a `TimeLimit`. It reallocates its buffers on each call, and checks `HasMove` before `Generate` at each node.
+    - For T15: no move ordering yet. The root must keep ties in generator order.
+    - For T16: `Search` throws when the player has no legal move, and does not check the root for the end of the game.
+    - Evidence and reviews: pull request 31.
 
 - [ ] **T14 — Add the time limit, iterative deepening and ties**
   - Refs: spec 6.1.5 items 7–9, spec 6.5 items 3, 4, plan 3.3, plan 3.5, plan 3.7, plan 4, plan 7.1, risk 10, tests 14, 16, 18, 33
