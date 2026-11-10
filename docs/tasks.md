@@ -267,7 +267,7 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - For T16: with one legal move, or when depth 1 did not finish, `SearchResult` has `CompletedDepth` and `Score` of 0.
     - Evidence and reviews: pull request 32.
 
-- [ ] **T15 — Add the transposition table, quiescence and the first Hard evaluation**
+- [x] **T15 — Add the transposition table, quiescence and the first Hard evaluation**
   - Refs: spec 2.1 items 1, 4, spec 6.1.5 item 6, plan 3.1, plan 3.5, plan 3.6, plan 3.7, risk 10, tests 31, 32
   - Depends on: T14
   - Done when:
@@ -277,15 +277,12 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - Tests 13, 14 and 19 still pass with the table on, and tests 31 and 32 pass.
     - The depth reached with the table is measured locally on the positions in plan section 3.6, and the result is in the pull request.
   - Verify: the standard test command
-  - Notes: The values are tuned in T21. Plan section 3.7 says why the table uses only an exact depth match.
-    - Also done, from plan 3.7 item 4: moves are ordered by the table's best move, then more captures first. The root keeps its own order and generator-order ties.
-    - Plan 3.5 updated, waiting for the owner's approval in pull request review: the table is 4 MB, not about 6 MB, because the best move is stored as its index in generator order. The details the plan left open for the Hard evaluation are recorded there: centre squares, the trade bonus of 2 for each missing piece, and guard or advancement for a man.
-    - Test 31 uses material scores with quiescence on, so its scores can be checked by hand. Test 13 covers the Hard evaluation with quiescence.
-    - No test fails when a table score from a deeper depth is used: a probe of 338 extra searches with kings showed no difference. The exact-depth rule is checked by inspection. So is the rule that quiescence counts positions, because each quiescence child goes through `Negamax`.
-    - Plan 3.6 updated with the depth measured with the table, on the T14 code and this code.
-    - Test 13 also runs with the Hard evaluation, on 4 of the 12 games. Its plain reference uses full-window alpha-beta in quiescence, because plain quiescence takes minutes at depth 4. A probe showed the same result as fully plain quiescence on 668 searches at depths 1 and 2. A second test 13 case uses positions with kings at depths 5 and 6, where the table reuses many scores.
-    - For T16: each new `GameTreeSearch` allocates a 4 MB table. About one in 3 new searches caused a full garbage collection in a probe. A search object can be reused, because each call clears its table.
-    - For T18: look for garbage-collection pauses when measuring the live app. If they matter, the first choice is to reuse tables between requests.
+  - Notes:
+    - Also done: move ordering (plan 3.7 item 4). Plan 3.5 details (a 4 MB table, and the Hard evaluation details the plan left open) wait for the owner's approval in pull request 33. Plan 3.6 has the measured depth.
+    - Test 13 also runs with the Hard evaluation, and with kings at depths 5 and 6. Its reference uses full-window alpha-beta in quiescence. Test 31 uses material scores with quiescence on. The exact-depth rule and the position counting in quiescence are checked by inspection.
+    - For T16: each new `GameTreeSearch` allocates a 4 MB table, and about one in 3 new searches caused a full garbage collection. A search can be reused, because each call clears its table.
+    - For T18: look for garbage-collection pauses; the first choice is to reuse tables between requests. For T21: the evaluation values are tuned there.
+    - Evidence and reviews: pull request 33.
 
 - [ ] **T16 — Add `ComputerPlayer` and the search settings**
   - Refs: spec 6.1.5 items 1, 2, 4–7, spec 6.2 example 16, spec 6.4 item 1, plan 2, plan 3.2, plan 3.3, plan 3.4, tests 7, 15, 17, 23
