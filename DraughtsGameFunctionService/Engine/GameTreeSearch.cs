@@ -32,9 +32,6 @@ public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvid
     // Wider than any score, so the first move searched always sets the best score.
     private const int Infinity = WinScore + 1;
 
-    // Every win scores at least this, and every evaluation scores less. Every loss scores at most its negative.
-    private const int LowestWinScore = WinScore - MaxPly;
-
     // Plan section 3.5: the clock is read once every this many positions.
     private const int PositionsBetweenClockChecks = 1_024;
 
@@ -112,16 +109,11 @@ public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvid
             searchOrder.Remove(bestIndex);
             searchOrder.Insert(0, bestIndex);
 
-            // Spec section 6.1.5, item 7: stop on a forced win. A depth sees every win within that many moves,
-            // so the first depth that finds a win finds the fastest one.
-            if (bestScore >= LowestWinScore)
-            {
-                break;
-            }
-
-            // Plan section 3.7, item 6: stop when even the best move loses, so every move loses. Each of those losses
-            // is within this depth, so a deeper search cannot change their scores, and the slowest is already chosen.
-            if (bestScore <= -LowestWinScore)
+            // Spec section 6.1.5, item 7, and plan section 3.7, item 6: stop when the result is decided within this
+            // depth. A depth sees every win and loss within that many moves, so a deeper search cannot change them.
+            // A win: the first depth that finds one finds the fastest. A loss: the best move loses, so every move
+            // loses, and the slowest loss is already chosen.
+            if (IsWinOrLossWithin(bestScore, depth))
             {
                 break;
             }
@@ -245,6 +237,11 @@ public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvid
 
         return bestScore;
     }
+
+    // True when the score is a win or a loss no more than depth moves ahead. The check uses the depth, not only the
+    // size of the score, because quiescence (T15) can find a win or loss beyond the depth, which a deeper search
+    // could still change.
+    private static bool IsWinOrLossWithin(int score, int depth) => Math.Abs(score) >= WinScore - depth;
 
     // Copies the board at this ply into the next ply's buffer and plays the move there.
     private int[] PlayMove(int ply, Move move)
