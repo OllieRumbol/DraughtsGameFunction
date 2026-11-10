@@ -9,7 +9,7 @@ using static DraughtsGameFunctionTests.EngineBoards;
 namespace DraughtsGameFunctionTests;
 
 /// <summary>
-/// Plan section 7.2, tests 13, 14, 16, 18, 19, 20 and 33: the alpha-beta search, its limits and its ties.
+/// Plan section 7.2, tests 13, 14, 16, 18, 19, 20, 31 and 33: the alpha-beta search, its limits, its ties and quiescence.
 /// </summary>
 [TestClass]
 public class GameTreeSearchTests
@@ -18,14 +18,22 @@ public class GameTreeSearchTests
 
     private static readonly MaterialEvaluator Evaluator = new();
 
-    // Test 13: the search finds the same move and score as plain minimax, for both players, at depths 1 to 4.
+    // Test 13: the search, with its table, finds the same move and score as plain minimax, for both players, at depths
+    // 1 to 4. The table can reuse a score only from depth 4, where two orders of moves first reach the same position.
+    // The Hard evaluation also checks quiescence. Plain minimax is slow with it, so Hard uses the first 4 games only.
     // The positions come from games of random legal moves with a fixed seed, so every run uses the same positions.
     // A player with one legal move is left out, because the search returns that move without searching (test 18).
     [TestMethod]
-    public void Search_FixedDepth_MatchesPlainMinimax()
+    [DataRow(false, 12, 200, DisplayName = "Normal evaluation")]
+    [DataRow(true, 4, 70, DisplayName = "Hard evaluation, with quiescence")]
+    public void Search_FixedDepth_MatchesPlainMinimax(bool hard, int gameCount, int minimumCompared)
     {
         // Arrange
-        var positions = PlayedPositions(seed: 20261110, gameCount: 12, pliesBetweenPositions: 6).ToList();
+        IEvaluator evaluator = hard ? new PositionalEvaluator() : Evaluator;
+        var positions = PlayedPositions(seed: 20261110, gameCount, pliesBetweenPositions: 6).ToList();
+
+        // One search for every call: each call starts with an empty table, so earlier calls cannot change a result.
+        var search = new GameTreeSearch(evaluator, TimeProvider.System, tieBreaker: null);
         var mismatches = new List<string>();
         var compared = 0;
 
@@ -41,8 +49,8 @@ public class GameTreeSearchTests
                 for (var depth = 1; depth <= 4; depth++)
                 {
                     // Act
-                    var expected = PlainMinimax.BestMove(board, player, depth, Evaluator);
-                    var actual = NewSearch().Search(board, player, new SearchLimits(depth, null));
+                    var expected = PlainMinimax.BestMove(board, player, depth, evaluator);
+                    var actual = search.Search(board, player, new SearchLimits(depth, null));
                     compared++;
 
                     // Assert
@@ -56,7 +64,52 @@ public class GameTreeSearchTests
         }
 
         Assert.IsEmpty(mismatches, string.Join(Environment.NewLine, mismatches.Take(5)));
-        Assert.IsGreaterThan(200, compared, "Too few searches were compared to trust the result.");
+        Assert.IsGreaterThan(minimumCompared, compared, "Too few searches were compared to trust the result.");
+    }
+
+    // Test 13, with many positions reached twice: kings can step back and forth, so at depths 5 and 6 the same
+    // position comes back by many orders of moves, and the table reuses many scores. A table that used a bound as an
+    // exact score gives a different result here. The positions are from random games, once each side has a king.
+    [TestMethod]
+    public void Search_FixedDepthWithKings_MatchesPlainMinimax()
+    {
+        // Arrange
+        var positions = PlayedPositions(seed: 13, gameCount: 30, pliesBetweenPositions: 8)
+            .Where(board => board.Contains(Board.Player1King) && board.Contains(Board.Player2King))
+            .Take(8)
+            .ToList();
+        var search = NewSearch();
+        var mismatches = new List<string>();
+        var compared = 0;
+
+        foreach (var board in positions)
+        {
+            foreach (var player in new[] { 1, 2 })
+            {
+                if (Generate(board, player).Count < 2)
+                {
+                    continue;
+                }
+
+                for (var depth = 5; depth <= 6; depth++)
+                {
+                    // Act
+                    var expected = PlainMinimax.BestMove(board, player, depth, Evaluator);
+                    var actual = search.Search(board, player, new SearchLimits(depth, null));
+                    compared++;
+
+                    // Assert
+                    if (actual.Move != expected.Move || actual.Score != expected.Score)
+                    {
+                        mismatches.Add($"Player {player}, depth {depth}: search {Describe(actual.Move)} = {actual.Score}, "
+                            + $"minimax {Describe(expected.Move)} = {expected.Score}, board {Text(board)}");
+                    }
+                }
+            }
+        }
+
+        Assert.IsEmpty(mismatches, string.Join(Environment.NewLine, mismatches.Take(5)));
+        Assert.IsGreaterThan(20, compared, "Too few searches were compared to trust the result.");
     }
 
     // Test 19: a win in 1 is chosen over a win in 3. For player 2, the king's step to (4,1) wins in 3 and comes
@@ -236,13 +289,18 @@ public class GameTreeSearchTests
     // way through a depth. For every position, player and limit, the search must stop at the first reading at or past
     // the limit, and return exactly what its last finished depth returns on its own. A search that kept the best move
     // so far from the unfinished depth would differ in some of these cases. One position has only kings.
+    // The Hard evaluation also checks that quiescence and the table stop with the search.
     [TestMethod]
-    public void Search_TimeLimitPasses_ReturnsLastFinishedDepthsMove()
+    [DataRow(false, DisplayName = "Normal evaluation")]
+    [DataRow(true, DisplayName = "Hard evaluation, with quiescence")]
+    public void Search_TimeLimitPasses_ReturnsLastFinishedDepthsMove(bool hard)
     {
         // Arrange
         const int maxDepth = 20;
         var step = TimeSpan.FromMilliseconds(1);
+        IEvaluator evaluator = hard ? new PositionalEvaluator() : Evaluator;
         var positions = PlayedPositions(seed: 16, gameCount: 4, pliesBetweenPositions: 10).Append(OnlyKings()).ToList();
+        var fixedDepthSearch = new GameTreeSearch(evaluator, TimeProvider.System, tieBreaker: null);
         var mismatches = new List<string>();
         var compared = 0;
 
@@ -259,7 +317,7 @@ public class GameTreeSearchTests
                 {
                     var timeLimit = TimeSpan.FromMilliseconds(milliseconds);
                     var clock = new FakeTimeProvider { AutoAdvanceAmount = step };
-                    var search = new GameTreeSearch(Evaluator, clock, tieBreaker: null);
+                    var search = new GameTreeSearch(evaluator, clock, tieBreaker: null);
                     var start = clock.GetUtcNow();
 
                     // Act
@@ -267,7 +325,7 @@ public class GameTreeSearchTests
                     var elapsed = clock.GetUtcNow() - start;
                     var lastFinishedDepth = result.CompletedDepth == 0
                         ? new SearchResult(Generate(board, player)[0], 0, 0)
-                        : NewSearch().Search(board, player, new SearchLimits(result.CompletedDepth, null));
+                        : fixedDepthSearch.Search(board, player, new SearchLimits(result.CompletedDepth, null));
                     compared++;
 
                     // Assert
@@ -390,6 +448,56 @@ public class GameTreeSearchTests
         Assert.IsFalse(Evaluator.UsesQuiescence);
     }
 
+    // Test 31: a position in the middle of an exchange is scored as the exchange ends. Player 2's man on (2,3) can
+    // take the man on (3,4), and player 1's man on (5,6) then takes it back. Without quiescence, depth 1 stops after
+    // the capture, which looks like a gain of a man and scores 0. With quiescence, the search sees the man taken back,
+    // so the capture scores -1. Player 2's best quiet moves also score -1.
+    [TestMethod]
+    public void Search_CaptureThatIsTakenBack_ScoresAsExchangeEnds()
+    {
+        // Arrange
+        var board = Create(
+            (0, 1, Board.Player2Man), (2, 3, Board.Player2Man),
+            (3, 4, Board.Player1Man), (5, 6, Board.Player1Man), (6, 7, Board.Player1Man));
+        var limits = new SearchLimits(MaxDepth: 1, TimeLimit: null);
+        var quiescentSearch = new GameTreeSearch(new QuiescentMaterialEvaluator(), TimeProvider.System, tieBreaker: null);
+
+        // Act
+        var withoutQuiescence = NewSearch().Search(board, player: 2, limits);
+        var withQuiescence = quiescentSearch.Search(board, player: 2, limits);
+
+        // Assert
+        Assert.AreEqual(Describe(Move((2, 3), (4, 5), (3, 4))), Describe(withoutQuiescence.Move));
+        Assert.AreEqual(0, withoutQuiescence.Score);
+        Assert.AreEqual(-1, withQuiescence.Score);
+    }
+
+    // Test 31: the search stands pat where the only capture loses material. Player 2 is 2 men ahead. After player 2's
+    // man on (0,1) moves, player 1's only capture is the man on (4,7) taking (3,6). Player 2's man on (1,6) would then
+    // take two men back, on (2,5) and (4,5). So player 1 does not capture, and player 2's best score stays 2. A search
+    // that made player 1 capture would score that line 3 for player 2.
+    [TestMethod]
+    public void Search_OnlyCaptureLosesMaterial_StandsPat()
+    {
+        // Arrange
+        var board = Create(
+            (0, 1, Board.Player2Man), (0, 7, Board.Player2Man), (1, 6, Board.Player2Man), (2, 7, Board.Player2Man),
+            (3, 6, Board.Player2Man),
+            (4, 5, Board.Player1Man), (4, 7, Board.Player1Man), (5, 4, Board.Player1Man));
+        var afterQuietMove = (int[])board.Clone();
+        MoveGenerator.Apply(afterQuietMove, Move((0, 1), (1, 0)));
+        var search = new GameTreeSearch(new QuiescentMaterialEvaluator(), TimeProvider.System, tieBreaker: null);
+
+        // Act
+        var result = search.Search(board, player: 2, new SearchLimits(MaxDepth: 1, TimeLimit: null));
+
+        // Assert
+        var capturesAfterQuietMove = Generate(afterQuietMove, player: 1).Where(move => move.Captured != 0).ToList();
+        Assert.HasCount(1, capturesAfterQuietMove, "Player 1 should have one capture after the quiet move.");
+        Assert.AreEqual(Describe(Move((4, 7), (2, 5), (3, 6))), Describe(capturesAfterQuietMove[0]));
+        Assert.AreEqual(2, result.Score);
+    }
+
     [TestMethod]
     public void Search_PlayerHasNoLegalMove_Throws()
     {
@@ -480,37 +588,16 @@ public class GameTreeSearchTests
         return new Move(Board.SquareCount - 1 - move.From, Board.SquareCount - 1 - move.To, captured);
     }
 
-    private static IEnumerable<int[]> PlayedPositions(int seed, int gameCount, int pliesBetweenPositions)
-    {
-        var random = new Random(seed);
-        var moves = new List<Move>();
-
-        for (var game = 0; game < gameCount; game++)
-        {
-            var board = Board.FromRows(StartingRows());
-            var player = 1;
-
-            for (var ply = 0; ply < 80; ply++)
-            {
-                if (ply % pliesBetweenPositions == 0)
-                {
-                    yield return (int[])board.Clone();
-                }
-
-                MoveGenerator.Generate(board, player, moves);
-                if (moves.Count == 0)
-                {
-                    break;
-                }
-
-                MoveGenerator.Apply(board, moves[random.Next(moves.Count)]);
-                player = 3 - player;
-            }
-        }
-    }
-
     private static string Text(int[] board) =>
         string.Join("/", Enumerable.Range(0, Board.Size).Select(row => string.Concat(board.Skip(row * Board.Size).Take(Board.Size))));
+
+    // The material evaluation with quiescence on, so test 31 checks quiescence with simple scores.
+    private sealed class QuiescentMaterialEvaluator : IEvaluator
+    {
+        public bool UsesQuiescence => true;
+
+        public int Evaluate(int[] board, int player) => Evaluator.Evaluate(board, player);
+    }
 
     // The material evaluation, counting how often it is called.
     private sealed class CountingEvaluator : IEvaluator
