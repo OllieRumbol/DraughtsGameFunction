@@ -1,4 +1,5 @@
 using DraughtsGameFunctionService.Engine;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -58,6 +59,39 @@ internal static class EngineBoards
         MoveGenerator.Generate(board, player, moves);
 
         return moves;
+    }
+
+    /// <summary>
+    /// Positions from games of random legal moves from the starting board. A fixed seed gives the same positions on
+    /// every run.
+    /// </summary>
+    public static IEnumerable<int[]> PlayedPositions(int seed, int gameCount, int pliesBetweenPositions)
+    {
+        var random = new Random(seed);
+        var moves = new List<Move>();
+
+        for (var game = 0; game < gameCount; game++)
+        {
+            var board = Board.FromRows(StartingRows());
+            var player = 1;
+
+            for (var ply = 0; ply < 80; ply++)
+            {
+                if (ply % pliesBetweenPositions == 0)
+                {
+                    yield return (int[])board.Clone();
+                }
+
+                MoveGenerator.Generate(board, player, moves);
+                if (moves.Count == 0)
+                {
+                    break;
+                }
+
+                MoveGenerator.Apply(board, moves[random.Next(moves.Count)]);
+                player = 3 - player;
+            }
+        }
     }
 
     /// <summary>A readable form of a move for assertion messages, for example "(1,2)->(3,4) x(2,3)".</summary>

@@ -3,14 +3,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 
 namespace DraughtsGameFunctionService.Engine;
 
 /// <summary>
 /// A negamax alpha-beta search that deepens one move at a time (plan section 3.7). A move is one ply, and a capture
 /// chain is one move. It stops at the maximum depth, when the time limit passes, when it finds a forced win, or when
-/// every move loses.
-/// Create one search for each request: it keeps working buffers between calls, so it is not thread-safe.
+/// every move loses. It remembers scored positions in a transposition table, and follows captures past the depth
+/// limit when the evaluator asks for it.
+/// Create one search for each request: it keeps working buffers and its table between calls, so it is not
+/// thread-safe. Each call starts with an empty table.
 /// </summary>
 public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvider, Random? tieBreaker)
 {
@@ -42,9 +45,16 @@ public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvid
     // (spec section 6.1.5, item 9).
     private readonly Random? _tieBreaker = tieBreaker;
 
-    // One board and one move list for each ply, so the search does not allocate as it goes.
-    private int[][] _boards = [];
-    private List<Move>[] _moveLists = [];
+    // No move from the table, so no move is put first.
+    private const int NoMove = -1;
+
+    // One board, one move list and one search order for each ply, so the search does not allocate as it goes.
+    // Quiescence can go past the depth limit, up to MaxPly.
+    private readonly int[][] _boards = NewBuffers(() => new int[Board.SquareCount]);
+    private readonly List<Move>[] _moveLists = NewBuffers(() => new List<Move>());
+    private readonly List<int>[] _searchOrders = NewBuffers(() => new List<int>());
+
+    private readonly TranspositionTable _table = new();
 
     // The root moves with the top score at the current depth, by their index in generator order.
     private readonly List<int> _tiedMoves = [];
@@ -66,7 +76,10 @@ public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvid
         var maxDepth = MaxDepthOf(limits);
 
         StartClock(limits.TimeLimit);
-        PrepareBuffers(board, maxDepth);
+        _table.Clear();
+
+        // The caller's board is copied, so the search never changes it.
+        Array.Copy(board, _boards[0], Board.SquareCount);
 
         var rootMoves = _moveLists[0];
         MoveGenerator.Generate(_boards[0], player, rootMoves);
@@ -209,17 +222,88 @@ public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvid
 
         if (depth == 0)
         {
-            return _evaluator.Evaluate(board, player);
+            return _evaluator.UsesQuiescence
+                ? Quiescence(board, player, ply, alpha, beta)
+                : _evaluator.Evaluate(board, player);
+        }
+
+        // Plan section 3.7: a stored score is used only when the position was searched to exactly this depth, so the
+        // search gives the same result as plain minimax at a fixed depth. The stored best move is used at any depth.
+        var key = TranspositionTable.KeyOf(board, player);
+        var tableMoveIndex = NoMove;
+
+        if (_table.TryGet(key, ply, out var entry))
+        {
+            if (entry.Depth == depth && CanUseStoredScore(entry, alpha, beta))
+            {
+                return entry.Score;
+            }
+
+            tableMoveIndex = entry.BestMoveIndex;
         }
 
         var moves = _moveLists[ply];
         MoveGenerator.Generate(board, player, moves);
 
+        var originalAlpha = alpha;
         var bestScore = -Infinity;
-        foreach (var move in moves)
+        var bestIndex = 0;
+
+        foreach (var index in SearchOrder(moves, tableMoveIndex, ply, capturesOnly: false))
         {
-            var child = PlayMove(ply, move);
+            var child = PlayMove(ply, moves[index]);
             var score = -Negamax(child, 3 - player, depth - 1, ply + 1, -beta, -alpha);
+
+            // A depth that did not finish stores nothing (T14 notes).
+            if (_timeIsUp)
+            {
+                return 0;
+            }
+
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestIndex = index;
+            }
+
+            alpha = Math.Max(alpha, score);
+
+            if (alpha >= beta)
+            {
+                break;
+            }
+        }
+
+        _table.Store(key, depth, ply, bestScore, BoundOf(bestScore, originalAlpha, beta), bestIndex);
+
+        return bestScore;
+    }
+
+    /// <summary>
+    /// Plan section 3.7: at depth 0, keeps searching captures, so a position in the middle of an exchange is scored as
+    /// the exchange ends. The player may stop capturing at any point and keep the evaluation ("stand pat"), because
+    /// captures are optional (spec section 2.1, item 1). The caller has already counted this position and checked the
+    /// end of the game. Quiescence scores are not stored in the table.
+    /// </summary>
+    private int Quiescence(int[] board, int player, int ply, int alpha, int beta)
+    {
+        var bestScore = _evaluator.Evaluate(board, player);
+
+        // There is no buffer past MaxPly, so the search stands pat there.
+        if (bestScore >= beta || ply == MaxPly)
+        {
+            return bestScore;
+        }
+
+        alpha = Math.Max(alpha, bestScore);
+
+        var moves = _moveLists[ply];
+        MoveGenerator.Generate(board, player, moves);
+
+        foreach (var index in SearchOrder(moves, NoMove, ply, capturesOnly: true))
+        {
+            var child = PlayMove(ply, moves[index]);
+            var score = -Negamax(child, 3 - player, depth: 0, ply + 1, -beta, -alpha);
 
             if (_timeIsUp)
             {
@@ -238,9 +322,68 @@ public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvid
         return bestScore;
     }
 
+    /// <summary>
+    /// The order to search the moves in, by their index in generator order (plan section 3.7, item 4): the table's
+    /// best move first, then moves that capture more pieces before moves that capture fewer, then generator order.
+    /// </summary>
+    private List<int> SearchOrder(List<Move> moves, int tableMoveIndex, int ply, bool capturesOnly)
+    {
+        var order = _searchOrders[ply];
+        order.Clear();
+
+        for (var index = 0; index < moves.Count; index++)
+        {
+            if (capturesOnly && moves[index].Captured == 0)
+            {
+                continue;
+            }
+
+            // An insertion sort. It keeps generator order between moves of the same priority, and the lists are short.
+            var priority = OrderPriority(moves, index, tableMoveIndex);
+            var position = order.Count;
+
+            while (position > 0 && OrderPriority(moves, order[position - 1], tableMoveIndex) < priority)
+            {
+                position--;
+            }
+
+            order.Insert(position, index);
+        }
+
+        return order;
+    }
+
+    // The table's move has an index that may be out of range after a key collision (risk 10). Then no move matches it.
+    private static int OrderPriority(List<Move> moves, int index, int tableMoveIndex) =>
+        index == tableMoveIndex ? int.MaxValue : BitOperations.PopCount(moves[index].Captured);
+
+    private static bool CanUseStoredScore(TableEntry entry, int alpha, int beta) => entry.Bound switch
+    {
+        ScoreBound.Exact => true,
+        ScoreBound.Lower => entry.Score >= beta,
+        ScoreBound.Upper => entry.Score <= alpha,
+        _ => false,
+    };
+
+    // Alpha-beta stops looking at a position once its score is outside the window, so the score is then only a bound.
+    private static ScoreBound BoundOf(int score, int originalAlpha, int beta)
+    {
+        if (score <= originalAlpha)
+        {
+            return ScoreBound.Upper;
+        }
+
+        if (score >= beta)
+        {
+            return ScoreBound.Lower;
+        }
+
+        return ScoreBound.Exact;
+    }
+
     // True when the score is a win or a loss no more than depth moves ahead. The check uses the depth, not only the
-    // size of the score, because quiescence (T15) can find a win or loss beyond the depth, which a deeper search
-    // could still change.
+    // size of the score, because quiescence can find a win or loss beyond the depth, which a deeper search could
+    // still change.
     private static bool IsWinOrLossWithin(int score, int depth) => Math.Abs(score) >= WinScore - depth;
 
     // Copies the board at this ply into the next ply's buffer and plays the move there.
@@ -304,18 +447,16 @@ public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvid
         }
     }
 
-    private void PrepareBuffers(int[] board, int maxDepth)
+    // One buffer for each ply from 0 to MaxPly.
+    private static T[] NewBuffers<T>(Func<T> create)
     {
-        _boards = new int[maxDepth + 1][];
-        _moveLists = new List<Move>[maxDepth + 1];
+        var buffers = new T[MaxPly + 1];
 
-        for (var ply = 0; ply <= maxDepth; ply++)
+        for (var ply = 0; ply <= MaxPly; ply++)
         {
-            _boards[ply] = new int[Board.SquareCount];
-            _moveLists[ply] = [];
+            buffers[ply] = create();
         }
 
-        // The caller's board is copied, so the search never changes it.
-        Array.Copy(board, _boards[0], Board.SquareCount);
+        return buffers;
     }
 }

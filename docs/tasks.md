@@ -278,6 +278,12 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - The depth reached with the table is measured locally on the positions in plan section 3.6, and the result is in the pull request.
   - Verify: the standard test command
   - Notes: The values are tuned in T21. Plan section 3.7 says why the table uses only an exact depth match.
+    - Also done, from plan 3.7 item 4: moves are ordered by the table's best move, then more captures first. The root keeps its own order and generator-order ties.
+    - Plan 3.5 updated: the table is 4 MB, not about 6 MB, because the best move is stored as its index in generator order. The details the plan left open for the Hard evaluation are recorded there: centre squares, the trade bonus of 2 for each missing piece, and guard or advancement for a man.
+    - Plan 3.6 updated with the depth measured with the table, on the T14 code and this code.
+    - Test 13 also runs with the Hard evaluation, on 4 of the 12 games. Its plain reference uses full-window alpha-beta in quiescence, because plain quiescence takes minutes at depth 4. A probe showed the same result as fully plain quiescence on 668 searches at depths 1 and 2.
+    - For T16: each new `GameTreeSearch` allocates a 4 MB table. About one in 3 new searches caused a full garbage collection in a probe. A search object can be reused, because each call clears its table.
+    - For T18: look for garbage-collection pauses when measuring the live app. If they matter, the first choice is to reuse tables between requests.
 
 - [ ] **T16 — Add `ComputerPlayer` and the search settings**
   - Refs: spec 6.1.5 items 1, 2, 4–7, spec 6.2 example 16, spec 6.4 item 1, plan 2, plan 3.2, plan 3.3, plan 3.4, tests 7, 15, 17, 23

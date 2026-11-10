@@ -219,10 +219,10 @@ Inside the engine, the board is `int[64]`, indexed by `row * 8 + column`, with t
 | Web API style | HTTP-triggered functions | The project is a function app | — |
 | Ties in the search | At the root, search each move with the window `(best - 1, beta)` | A plain alpha-beta window cuts off a move that only equals the best, and returns a bound, so a tie cannot be seen. One point lower makes an equal move return its exact score. The search then keeps every move with the top score, and the tie breaker picks one (spec section 6.1.5, item 7). | Shuffling the moves first does not choose fairly. Scores within a margin were rejected by the owner. |
 | Time limit | Check the clock every 1,024 positions. Abandon the unfinished depth, and use the result of the last finished depth. | A part-finished depth can return a poor move. At the measured speeds, the check runs at least every few milliseconds. | Using the best move so far from an unfinished depth is stronger, but harder to get right. Can be added later. |
-| No state between requests | A new search and transposition table for each request | Spec section 6.5, item 8. About 6 MB each, at 2^18 entries. | A shared table needs locking, and different evaluations would pollute it. |
+| No state between requests | A new search and transposition table for each request | Spec section 6.5, item 8. 4 MB each, at 2^18 entries of 16 bytes. The best move is stored as its index in generator order. | A shared table needs locking, and different evaluations would pollute it. |
 | Quiescence | Hard only. At depth 0, keep searching captures, and allow standing pat because captures are optional (spec section 2.1, item 1). | It stops Hard misjudging a position in the middle of an exchange. Leaving it out of Normal gives Normal natural human-like misjudgements. | Using it for both narrows the gap between levels. |
 | Normal evaluation | Man 1, king 2 | Spec section 6.1.5, item 5. Coarse scores give many exact ties, so Normal varies its play. | — |
-| Hard evaluation, first values | Man 100, king 200, advancement 3 per row, back-row guard 6, centre 2, plus a bonus for trading pieces when ahead | A king is worth more than in standard draughts, because men cannot capture kings (spec section 2.1, item 4). Values are tuned with the self-play tool. | Mobility is left out at first, because it costs a move generation at each leaf. |
+| Hard evaluation, first values | Man 100, king 200, advancement 3 per row, back-row guard 6, centre 2, plus a bonus for trading pieces when ahead. A man scores either advancement or, on its own back row, the guard. The centre is rows 3 and 4, columns 2 to 5, for men and kings. The player who is ahead in material gets 2 for each piece missing from the starting 24. | A king is worth more than in standard draughts, because men cannot capture kings (spec section 2.1, item 4). Values are tuned with the self-play tool. | Mobility is left out at first, because it costs a move generation at each leaf. |
 | Testing the clock | `TimeProvider` is injected | A fake clock makes the time-limit test exact, not timing-dependent | — |
 | Target framework | `net10.0` in every project, from one file | The owner's standard: one target framework, set in one place | Keeping netstandard2.0 for the libraries has no benefit now. |
 | Nullable | On for the host and tests, and for new engine files. Models and old service code follow as they are rewritten. | Keeps step 1 small | Fixing every warning in the urgent step |
@@ -241,6 +241,14 @@ From a throwaway prototype on 2026-11-03, on 48 positions from random games, on 
 | Plus the transposition table | 7.8–8.9 | 8.3–9.3 | 9.9–10.7 | 10.3–11.3 |
 
 So the transposition table is included from the start. The prototype did not include quiescence, which will use some of the time.
+
+Measured again in T15 on 2026-11-10, on 48 positions from random games at plies 4 to 16, on the same machine. The table uses only an exact depth match (section 3.7), and moves are ordered as in section 3.7, item 4:
+
+| Search | 50 ms | 100 ms | 500 ms | 1,000 ms |
+| --- | --- | --- | --- | --- |
+| T14 code: alpha-beta, last best move first at the root only | 6.79 | 7.60 | 9.00 | 9.44 |
+| T15 code, Normal evaluation | 8.38 | 9.33 | 11.23 | 11.71 |
+| T15 code, Hard evaluation with quiescence | 7.94 | 8.65 | 10.50 | 10.88 |
 
 **Speed on Azure is not yet known.** The figures above do not transfer directly:
 * The live app's 0.98 s at depth 5 compares with 388 ms locally on .NET 6, so the old plan is about 2.5 times slower than this machine, including network time.
