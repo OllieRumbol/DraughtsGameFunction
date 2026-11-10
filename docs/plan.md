@@ -257,7 +257,7 @@ Section 7.3 measures it on the real app.
 3. **Table lookup.** See below.
 4. **Move order.** The table's best move first, then more captures before fewer, then generator order.
 5. **Root.** Each iteration searches the root moves with the window in section 3.5, and puts the last depth's best move first. Ties are decided by generator order, not by search order, so reordering does not change the fixed-depth result.
-6. **Stopping.** Stop when the time limit passes (section 3.5), at the maximum depth, or when a finished depth finds a forced win.
+6. **Stopping.** Stop when the time limit passes (section 3.5), at the maximum depth, or when a finished depth finds a forced win. Also stop when a finished depth shows that every move loses: a deeper search cannot change those scores, and the slowest loss is already chosen. The owner approved this on 2026-11-10.
 
 **Transposition table.**
 * It has 2^18 entries. Each holds the full 64-bit key, the score, the remaining depth, the bound (exact, lower or upper) and the best move. The slot is always replaced.

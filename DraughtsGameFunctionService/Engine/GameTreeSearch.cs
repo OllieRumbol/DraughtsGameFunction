@@ -8,7 +8,8 @@ namespace DraughtsGameFunctionService.Engine;
 
 /// <summary>
 /// A negamax alpha-beta search that deepens one move at a time (plan section 3.7). A move is one ply, and a capture
-/// chain is one move. It stops at the maximum depth, when the time limit passes, or when it finds a forced win.
+/// chain is one move. It stops at the maximum depth, when the time limit passes, when it finds a forced win, or when
+/// every move loses.
 /// Create one search for each request: it keeps working buffers between calls, so it is not thread-safe.
 /// </summary>
 public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvider, Random? tieBreaker)
@@ -31,7 +32,7 @@ public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvid
     // Wider than any score, so the first move searched always sets the best score.
     private const int Infinity = WinScore + 1;
 
-    // Every win scores at least this, and every evaluation scores less.
+    // Every win scores at least this, and every evaluation scores less. Every loss scores at most its negative.
     private const int LowestWinScore = WinScore - MaxPly;
 
     // Plan section 3.5: the clock is read once every this many positions.
@@ -114,6 +115,13 @@ public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvid
             // Spec section 6.1.5, item 7: stop on a forced win. A depth sees every win within that many moves,
             // so the first depth that finds a win finds the fastest one.
             if (bestScore >= LowestWinScore)
+            {
+                break;
+            }
+
+            // Plan section 3.7, item 6: stop when even the best move loses, so every move loses. Each of those losses
+            // is within this depth, so a deeper search cannot change their scores, and the slowest is already chosen.
+            if (bestScore <= -LowestWinScore)
             {
                 break;
             }

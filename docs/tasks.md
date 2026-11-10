@@ -262,7 +262,7 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
   - Verify: the standard test command
   - Notes:
     - The one-move return is in `GameTreeSearch`, so test 13 skips one-move positions and two test 20 positions gained a second move.
-    - The clock is also read before each depth. `Search` needs a maximum depth, a time limit or both, and stops at `MaxPly` without a depth. It stops on a forced win, not a forced loss.
+    - The clock is also read before each depth. `Search` needs a maximum depth, a time limit or both, and stops at `MaxPly` without a depth. It stops on a forced win, or when every move loses (approved 2026-11-10, plan 3.7 item 6).
     - For T15: quiescence must count positions and check the clock as `Negamax` does, and the table must not store a score from a stopped depth.
     - For T16: with one legal move, or when depth 1 did not finish, `SearchResult` has `CompletedDepth` and `Score` of 0.
     - Evidence and reviews: pull request 32.

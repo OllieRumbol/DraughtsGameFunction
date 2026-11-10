@@ -327,6 +327,27 @@ public class GameTreeSearchTests
         Assert.AreEqual(0, evaluator.Calls);
     }
 
+    // Plan section 3.7, item 6: when a finished depth shows that every move loses, the search stops and keeps the
+    // slowest loss. The position is test 19's, where every move loses and the slowest loses in 4. The fake clock does
+    // not move, so only the stop rule ends the search before the maximum depth.
+    [TestMethod]
+    public void Search_EveryMoveLoses_StopsAtDepthThatShowsIt()
+    {
+        // Arrange
+        var board = Create(
+            (2, 1, Board.Player1Man), (2, 3, Board.Player1Man),
+            (0, 1, Board.Player2King), (1, 4, Board.Player2King));
+        var search = new GameTreeSearch(Evaluator, new FakeTimeProvider(), new Random(37));
+
+        // Act
+        var result = search.Search(board, player: 1, new SearchLimits(MaxDepth: 10, TimeSpan.FromSeconds(1)));
+
+        // Assert
+        Assert.AreEqual(4, result.CompletedDepth);
+        Assert.AreEqual(Describe(Move((2, 1), (1, 2))), Describe(result.Move));
+        Assert.AreEqual(-Win + 4, result.Score);
+    }
+
     // Test 33: a forced win stops the search before the time limit. The fake clock does not move, so only the win
     // can stop it before the maximum depth. The maximum depth is set only so that a search that missed the win would
     // fail this test rather than run for a very long time. The position is test 19's, where a capture wins in 1.
