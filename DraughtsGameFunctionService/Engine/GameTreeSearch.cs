@@ -18,6 +18,12 @@ public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvid
     /// </summary>
     public const int WinScore = 100_000;
 
+    /// <summary>
+    /// The deepest the search goes. It keeps the buffers and the call stack small, and a win score far from an
+    /// evaluation score. The search is also limited by time from T14 (tasks.md).
+    /// </summary>
+    public const int MaxPly = 64;
+
     private const int TieScore = 0;
 
     // Wider than any score, so the first root move always sets the best score.
@@ -40,9 +46,17 @@ public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvid
     /// </summary>
     public SearchResult Search(int[] board, int player, SearchLimits limits)
     {
-        if (limits.MaxDepth is not int depth || depth < 1)
+        ArgumentOutOfRangeException.ThrowIfNotEqual(board.Length, Board.SquareCount, nameof(board));
+
+        if (limits.MaxDepth is not int depth || depth < 1 || depth > MaxPly)
         {
-            throw new ArgumentException("The search needs a maximum depth of 1 or more.", nameof(limits));
+            throw new ArgumentException($"The search needs a maximum depth from 1 to {MaxPly}.", nameof(limits));
+        }
+
+        // Fail loudly rather than search past a limit the caller asked for (spec section 6.1.5, item 8).
+        if (limits.TimeLimit is not null)
+        {
+            throw new NotSupportedException("The time limit is added in T14 (tasks.md).");
         }
 
         PrepareBuffers(board, depth);

@@ -140,7 +140,8 @@ public class GameTreeSearchTests
 
     // Test 20: when neither player can move after a move, the game is a tie and scores 0. Here player 2's only move
     // fills (5,0), and then every piece on both sides is blocked. Before it, a king can capture through (5,0).
-    // The material evaluation would give player 2 one point, so 0 shows the tie rule was used.
+    // Player 2 has 9 men against 4 kings, so the material evaluation would give player 2 one point, and 0 shows
+    // the tie rule was used.
     [TestMethod]
     public void Search_MoveLeavesNeitherPlayerAbleToMove_ScoresTie()
     {
@@ -149,18 +150,19 @@ public class GameTreeSearchTests
             (7, 0, Board.Player1King), (7, 2, Board.Player1King), (7, 4, Board.Player1King), (7, 6, Board.Player1King),
             (6, 1, Board.Player2Man), (6, 3, Board.Player2Man), (6, 5, Board.Player2Man), (6, 7, Board.Player2Man),
             (5, 2, Board.Player2Man), (5, 4, Board.Player2Man), (5, 6, Board.Player2Man),
-            (4, 1, Board.Player2Man));
+            (4, 1, Board.Player2Man), (4, 3, Board.Player2Man));
 
         // Act
         var result = NewSearch().Search(board, player: 2, new SearchLimits(MaxDepth: 1, TimeLimit: null));
 
         // Assert
+        Assert.AreEqual(1, Evaluator.Evaluate(board, player: 2), "Player 2 should be one point ahead.");
         Assert.AreEqual(Describe(Move((4, 1), (5, 0))), Describe(result.Move));
         Assert.AreEqual(0, result.Score);
     }
 
     [TestMethod]
-    public void Search_DoesNotChangeTheCallersBoard()
+    public void Search_AnyPosition_LeavesCallersBoardUnchanged()
     {
         // Arrange
         var board = Board.FromRows(StartingRows());
@@ -176,13 +178,45 @@ public class GameTreeSearchTests
     [TestMethod]
     [DataRow(null)]
     [DataRow(0)]
-    public void Search_NoMaximumDepth_Throws(int? maxDepth)
+    [DataRow(GameTreeSearch.MaxPly + 1)]
+    public void Search_MaximumDepthMissingOrOutOfRange_Throws(int? maxDepth)
     {
         // Arrange
         var board = Board.FromRows(StartingRows());
 
         // Act and assert
         Assert.ThrowsExactly<ArgumentException>(() => NewSearch().Search(board, 2, new SearchLimits(maxDepth, null)));
+    }
+
+    // The time limit is added in T14. Until then a time limit fails, so no caller can rely on it by mistake.
+    [TestMethod]
+    public void Search_TimeLimitSet_ThrowsNotSupported()
+    {
+        // Arrange
+        var board = Board.FromRows(StartingRows());
+        var limits = new SearchLimits(MaxDepth: 2, TimeLimit: TimeSpan.FromSeconds(1));
+
+        // Act and assert
+        Assert.ThrowsExactly<NotSupportedException>(() => NewSearch().Search(board, 2, limits));
+    }
+
+    // Spec section 6.1.5, item 5, and plan section 3.5: material only, a man 1 and a king 2, positive for the player.
+    [TestMethod]
+    [DataRow(1, 3)]
+    [DataRow(2, -3)]
+    public void Evaluate_TwoMenAndAKingAgainstOneMan_ScoresMaterial(int player, int expected)
+    {
+        // Arrange
+        var board = Create(
+            (5, 0, Board.Player1Man), (5, 2, Board.Player1Man), (6, 1, Board.Player1King),
+            (2, 1, Board.Player2Man), (3, 4, Board.Highlighted));
+
+        // Act
+        var score = Evaluator.Evaluate(board, player);
+
+        // Assert
+        Assert.AreEqual(expected, score);
+        Assert.IsFalse(Evaluator.UsesQuiescence);
     }
 
     [TestMethod]
