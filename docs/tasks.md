@@ -278,7 +278,7 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - The depth reached with the table is measured locally on the positions in plan section 3.6, and the result is in the pull request.
   - Verify: the standard test command
   - Notes:
-    - Also done: move ordering (plan 3.7 item 4). Plan 3.5 details (a 4 MB table, and the Hard evaluation details the plan left open) wait for the owner's approval in pull request 33. Plan 3.6 has the measured depth.
+    - Also done: move ordering (plan 3.7 item 4). Plan 3.5 details (a 4 MB table, and the Hard evaluation details the plan left open) were approved by the owner on 2026-11-10. Plan 3.6 has the measured depth.
     - Test 13 also runs with the Hard evaluation, and with kings at depths 5 and 6. Its reference uses full-window alpha-beta in quiescence. Test 31 uses material scores with quiescence on. The exact-depth rule and the position counting in quiescence are checked by inspection.
     - For T16: each new `GameTreeSearch` allocates a 4 MB table, and about one in 3 new searches caused a full garbage collection. A search can be reused, because each call clears its table.
     - For T18: look for garbage-collection pauses; the first choice is to reuse tables between requests. For T21: the evaluation values are tuned there.
