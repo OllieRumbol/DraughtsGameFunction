@@ -250,7 +250,7 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - For T16: `Search` throws when the player has no legal move, and does not check the root for the end of the game.
     - Evidence and reviews: pull request 31.
 
-- [ ] **T14 — Add the time limit, iterative deepening and ties**
+- [x] **T14 — Add the time limit, iterative deepening and ties**
   - Refs: spec 6.1.5 items 7–9, spec 6.5 items 3, 4, plan 3.3, plan 3.5, plan 3.7, plan 4, plan 7.1, risk 10, tests 14, 16, 18, 33
   - Depends on: T13
   - Done when:
@@ -261,11 +261,11 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - Tests 14, 16, 18 and 33 pass, and tests 13 and 19 still pass.
   - Verify: the standard test command
   - Notes:
-    - The one-move return is in `GameTreeSearch`, so test 13 leaves out a player with one legal move, and two test 20 positions gained a second move with the same assertions.
-    - The clock is also read before each depth starts, so a limit that has passed before depth 1 returns the first legal move (plan 4). Each depth searches the last depth's best move first (plan 3.7, item 5).
-    - `Search` needs a maximum depth, a time limit or both. A time limit must be more than zero, and with no maximum depth the search stops at `MaxPly`. It stops early on a forced win, not on a forced loss.
-    - For T15: quiescence must count its positions and check the clock as `Negamax` does, and the table must not store a score from a depth the time limit stopped.
+    - The one-move return is in `GameTreeSearch`, so test 13 skips one-move positions and two test 20 positions gained a second move.
+    - The clock is also read before each depth. `Search` needs a maximum depth, a time limit or both, and stops at `MaxPly` without a depth. It stops on a forced win, not a forced loss.
+    - For T15: quiescence must count positions and check the clock as `Negamax` does, and the table must not store a score from a stopped depth.
     - For T16: with one legal move, or when depth 1 did not finish, `SearchResult` has `CompletedDepth` and `Score` of 0.
+    - Evidence and reviews: pull request 32.
 
 - [ ] **T15 — Add the transposition table, quiescence and the first Hard evaluation**
   - Refs: spec 2.1 items 1, 4, spec 6.1.5 item 6, plan 3.1, plan 3.5, plan 3.6, plan 3.7, risk 10, tests 31, 32
