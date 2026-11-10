@@ -6,7 +6,8 @@ using System.Collections.Generic;
 namespace DraughtsGameFunctionService.Engine;
 
 /// <summary>
-/// A negamax alpha-beta search to a fixed depth (plan section 3.7). A move is one ply, and a capture chain is one move.
+/// A negamax alpha-beta search that deepens one move at a time (plan section 3.7). A move is one ply, and a capture
+/// chain is one move. It stops at the maximum depth, when the time limit passes, or when it finds a forced win.
 /// Create one search for each request: it keeps working buffers between calls, so it is not thread-safe.
 /// </summary>
 public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvider, Random? tieBreaker)
@@ -20,46 +21,53 @@ public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvid
 
     /// <summary>
     /// The deepest the search goes. It keeps the buffers and the call stack small, and a win score far from an
-    /// evaluation score. The search is also limited by time from T14 (tasks.md).
+    /// evaluation score. A search with a time limit and no maximum depth stops here too.
     /// </summary>
     public const int MaxPly = 64;
 
     private const int TieScore = 0;
 
-    // Wider than any score, so the first root move always sets the best score.
+    // Wider than any score, so the first move searched always sets the best score.
     private const int Infinity = WinScore + 1;
 
-    private readonly IEvaluator _evaluator = evaluator;
+    // Every win scores at least this, and every evaluation scores less.
+    private const int LowestWinScore = WinScore - MaxPly;
 
-    // The time limit and the tie breaker are read from T14 (tasks.md). Until then the search runs to MaxDepth,
-    // and of several moves with the top score it keeps the first in generator order.
+    // Plan section 3.5: the clock is read once every this many positions.
+    private const int PositionsBetweenClockChecks = 1_024;
+
+    private readonly IEvaluator _evaluator = evaluator;
     private readonly TimeProvider _timeProvider = timeProvider;
+
+    // Null in the fixed-depth test mode: of several moves with the top score, the first in generator order is kept
+    // (spec section 6.1.5, item 9).
     private readonly Random? _tieBreaker = tieBreaker;
 
     // One board and one move list for each ply, so the search does not allocate as it goes.
     private int[][] _boards = [];
     private List<Move>[] _moveLists = [];
 
+    // The root moves with the top score at the current depth, by their index in generator order.
+    private readonly List<int> _tiedMoves = [];
+
+    // The time limit of the current search, and whether it has passed.
+    private TimeSpan? _timeLimit;
+    private long _startTimestamp;
+    private long _positionCount;
+    private bool _timeIsUp;
+
     /// <summary>
-    /// Chooses a move for <paramref name="player"/>, searching <see cref="SearchLimits.MaxDepth"/> moves ahead.
-    /// The player must have at least one legal move.
+    /// Chooses a move for <paramref name="player"/>, who must have at least one legal move.
+    /// It returns the best move of the deepest depth that finished. When no depth finished, because the player has
+    /// only one legal move or the time limit passed first, it returns the first legal move with a depth and score of 0.
     /// </summary>
     public SearchResult Search(int[] board, int player, SearchLimits limits)
     {
         ArgumentOutOfRangeException.ThrowIfNotEqual(board.Length, Board.SquareCount, nameof(board));
+        var maxDepth = MaxDepthOf(limits);
 
-        if (limits.MaxDepth is not int depth || depth < 1 || depth > MaxPly)
-        {
-            throw new ArgumentException($"The search needs a maximum depth from 1 to {MaxPly}.", nameof(limits));
-        }
-
-        // Fail loudly rather than search past a limit the caller asked for (spec section 6.1.5, item 8).
-        if (limits.TimeLimit is not null)
-        {
-            throw new NotSupportedException("The time limit is added in T14 (tasks.md).");
-        }
-
-        PrepareBuffers(board, depth);
+        StartClock(limits.TimeLimit);
+        PrepareBuffers(board, maxDepth);
 
         var rootMoves = _moveLists[0];
         MoveGenerator.Generate(_boards[0], player, rootMoves);
@@ -68,32 +76,119 @@ public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvid
             throw new ArgumentException($"Player {player} has no legal move.", nameof(board));
         }
 
-        // The root moves are searched in generator order, and only a higher score replaces the best move.
-        // So of several moves with the top score, the first in generator order is kept, as plain minimax keeps it.
-        var bestMove = rootMoves[0];
-        var bestScore = -Infinity;
-        var alpha = -Infinity;
+        // Plan section 4: if depth 1 does not finish in time, the first legal move is returned.
+        var result = new SearchResult(rootMoves[0], CompletedDepth: 0, Score: 0);
 
-        foreach (var move in rootMoves)
+        // Spec section 6.1.5, item 7: one legal move is returned at once, without a search.
+        if (rootMoves.Count == 1)
         {
-            var child = PlayMove(ply: 0, move);
+            return result;
+        }
+
+        // The root moves in the order they are searched, by their index in generator order.
+        var searchOrder = new List<int>(rootMoves.Count);
+        for (var index = 0; index < rootMoves.Count; index++)
+        {
+            searchOrder.Add(index);
+        }
+
+        for (var depth = 1; depth <= maxDepth; depth++)
+        {
+            if (TimeIsUp())
+            {
+                break;
+            }
+
+            // Plan section 3.5: a depth that did not finish is abandoned, and the last finished depth is used.
+            var finishedDepth = SearchRoot(player, depth, searchOrder);
+            if (finishedDepth is null)
+            {
+                break;
+            }
+
+            var (bestIndex, bestScore) = finishedDepth.Value;
+            result = new SearchResult(rootMoves[bestIndex], depth, bestScore);
+
+            // Plan section 3.7, item 5: the best move is searched first at the next depth.
+            searchOrder.Remove(bestIndex);
+            searchOrder.Insert(0, bestIndex);
+
+            // Spec section 6.1.5, item 7: stop on a forced win. A depth sees every win within that many moves,
+            // so the first depth that finds a win finds the fastest one.
+            if (bestScore >= LowestWinScore)
+            {
+                break;
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Searches every root move to <paramref name="depth"/>. Returns the chosen move's index in generator order and
+    /// its score, or null if the time limit passed first.
+    /// </summary>
+    private (int MoveIndex, int Score)? SearchRoot(int player, int depth, List<int> searchOrder)
+    {
+        var rootMoves = _moveLists[0];
+        var bestScore = -Infinity;
+        _tiedMoves.Clear();
+
+        foreach (var index in searchOrder)
+        {
+            // Plan section 3.5: the window starts one point below the best score, so a move that equals the best
+            // returns its exact score and is seen as a tie. A move that scores lower returns a bound below the best.
+            var alpha = bestScore - 1;
+            var child = PlayMove(ply: 0, rootMoves[index]);
             var score = -Negamax(child, 3 - player, depth - 1, ply: 1, -Infinity, -alpha);
+
+            if (_timeIsUp)
+            {
+                return null;
+            }
 
             if (score > bestScore)
             {
                 bestScore = score;
-                bestMove = move;
+                _tiedMoves.Clear();
+                _tiedMoves.Add(index);
             }
-
-            alpha = Math.Max(alpha, score);
+            else if (score == bestScore)
+            {
+                _tiedMoves.Add(index);
+            }
         }
 
-        return new SearchResult(bestMove, depth, bestScore);
+        return (ChooseTiedMove(), bestScore);
     }
 
-    /// <summary>The score of the position for <paramref name="player"/>, who moves next.</summary>
+    /// <summary>
+    /// Chooses one of the moves with the top score (spec section 6.1.5, item 7). The choice goes by generator order,
+    /// not by search order, so putting the last depth's best move first does not change a fixed-depth result.
+    /// </summary>
+    private int ChooseTiedMove()
+    {
+        _tiedMoves.Sort();
+
+        if (_tieBreaker is null)
+        {
+            return _tiedMoves[0];
+        }
+
+        return _tiedMoves[_tieBreaker.Next(_tiedMoves.Count)];
+    }
+
+    /// <summary>
+    /// The score of the position for <paramref name="player"/>, who moves next. When the time limit passes, it
+    /// returns 0 and sets <see cref="_timeIsUp"/>, and every caller returns without using the score.
+    /// </summary>
     private int Negamax(int[] board, int player, int depth, int ply, int alpha, int beta)
     {
+        if (CountPositionAndCheckClock())
+        {
+            return 0;
+        }
+
         // The end of the game is checked first, for both players, as the web app checks it after every move
         // (spec section 2.1, item 6). This also catches a move that left its own player with no moves.
         var playerCanMove = MoveGenerator.HasMove(board, player);
@@ -128,6 +223,11 @@ public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvid
             var child = PlayMove(ply, move);
             var score = -Negamax(child, 3 - player, depth - 1, ply + 1, -beta, -alpha);
 
+            if (_timeIsUp)
+            {
+                return 0;
+            }
+
             bestScore = Math.Max(bestScore, score);
             alpha = Math.Max(alpha, score);
 
@@ -150,12 +250,64 @@ public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvid
         return child;
     }
 
-    private void PrepareBuffers(int[] board, int depth)
+    private static int MaxDepthOf(SearchLimits limits)
     {
-        _boards = new int[depth + 1][];
-        _moveLists = new List<Move>[depth + 1];
+        if (limits.MaxDepth is null && limits.TimeLimit is null)
+        {
+            throw new ArgumentException("The search needs a maximum depth, a time limit or both.", nameof(limits));
+        }
 
-        for (var ply = 0; ply <= depth; ply++)
+        if (limits.MaxDepth is int depth && (depth < 1 || depth > MaxPly))
+        {
+            throw new ArgumentException($"The maximum depth must be from 1 to {MaxPly}.", nameof(limits));
+        }
+
+        if (limits.TimeLimit is TimeSpan timeLimit && timeLimit <= TimeSpan.Zero)
+        {
+            throw new ArgumentException("The time limit must be more than zero.", nameof(limits));
+        }
+
+        return limits.MaxDepth ?? MaxPly;
+    }
+
+    private void StartClock(TimeSpan? timeLimit)
+    {
+        _timeLimit = timeLimit;
+        _startTimestamp = timeLimit is null ? 0 : _timeProvider.GetTimestamp();
+        _positionCount = 0;
+        _timeIsUp = false;
+    }
+
+    // Plan section 3.5: the clock is read every 1,024 positions, not at every one, because reading it takes time.
+    private bool CountPositionAndCheckClock()
+    {
+        _positionCount++;
+
+        if (_positionCount % PositionsBetweenClockChecks == 0)
+        {
+            TimeIsUp();
+        }
+
+        return _timeIsUp;
+    }
+
+    // Reads the clock, and records when the time limit has passed. With no time limit, it never passes.
+    private bool TimeIsUp()
+    {
+        if (_timeLimit is TimeSpan timeLimit && _timeProvider.GetElapsedTime(_startTimestamp) >= timeLimit)
+        {
+            _timeIsUp = true;
+        }
+
+        return _timeIsUp;
+    }
+
+    private void PrepareBuffers(int[] board, int maxDepth)
+    {
+        _boards = new int[maxDepth + 1][];
+        _moveLists = new List<Move>[maxDepth + 1];
+
+        for (var ply = 0; ply <= maxDepth; ply++)
         {
             _boards[ply] = new int[Board.SquareCount];
             _moveLists[ply] = [];

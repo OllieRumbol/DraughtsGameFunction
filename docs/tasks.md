@@ -261,6 +261,11 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - Tests 14, 16, 18 and 33 pass, and tests 13 and 19 still pass.
   - Verify: the standard test command
   - Notes:
+    - The one-move return is in `GameTreeSearch`, so test 13 leaves out a player with one legal move, and two test 20 positions gained a second move with the same assertions.
+    - The clock is also read before each depth starts, so a limit that has passed before depth 1 returns the first legal move (plan 4). Each depth searches the last depth's best move first (plan 3.7, item 5).
+    - `Search` needs a maximum depth, a time limit or both. A time limit must be more than zero, and with no maximum depth the search stops at `MaxPly`. It stops early on a forced win, not on a forced loss.
+    - For T15: quiescence must count its positions and check the clock as `Negamax` does, and the table must not store a score from a depth the time limit stopped.
+    - For T16: with one legal move, or when depth 1 did not finish, `SearchResult` has `CompletedDepth` and `Score` of 0.
 
 - [ ] **T15 — Add the transposition table, quiescence and the first Hard evaluation**
   - Refs: spec 2.1 items 1, 4, spec 6.1.5 item 6, plan 3.1, plan 3.5, plan 3.6, plan 3.7, risk 10, tests 31, 32
