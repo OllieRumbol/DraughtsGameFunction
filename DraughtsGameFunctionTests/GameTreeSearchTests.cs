@@ -67,6 +67,52 @@ public class GameTreeSearchTests
         Assert.IsGreaterThan(minimumCompared, compared, "Too few searches were compared to trust the result.");
     }
 
+    // Test 13, with many positions reached twice: kings can step back and forth, so at depths 5 and 6 the same
+    // position comes back by many orders of moves, and at a deeper ply. The table then reuses many scores. A table that
+    // reused a score from a different depth, or used a bound as an exact score, would give a different result.
+    // The positions are from random games, once each side has a king.
+    [TestMethod]
+    public void Search_FixedDepthWithKings_MatchesPlainMinimax()
+    {
+        // Arrange
+        var positions = PlayedPositions(seed: 13, gameCount: 30, pliesBetweenPositions: 8)
+            .Where(board => board.Contains(Board.Player1King) && board.Contains(Board.Player2King))
+            .Take(8)
+            .ToList();
+        var search = NewSearch();
+        var mismatches = new List<string>();
+        var compared = 0;
+
+        foreach (var board in positions)
+        {
+            foreach (var player in new[] { 1, 2 })
+            {
+                if (Generate(board, player).Count < 2)
+                {
+                    continue;
+                }
+
+                for (var depth = 5; depth <= 6; depth++)
+                {
+                    // Act
+                    var expected = PlainMinimax.BestMove(board, player, depth, Evaluator);
+                    var actual = search.Search(board, player, new SearchLimits(depth, null));
+                    compared++;
+
+                    // Assert
+                    if (actual.Move != expected.Move || actual.Score != expected.Score)
+                    {
+                        mismatches.Add($"Player {player}, depth {depth}: search {Describe(actual.Move)} = {actual.Score}, "
+                            + $"minimax {Describe(expected.Move)} = {expected.Score}, board {Text(board)}");
+                    }
+                }
+            }
+        }
+
+        Assert.IsEmpty(mismatches, string.Join(Environment.NewLine, mismatches.Take(5)));
+        Assert.IsGreaterThan(20, compared, "Too few searches were compared to trust the result.");
+    }
+
     // Test 19: a win in 1 is chosen over a win in 3. For player 2, the king's step to (4,1) wins in 3 and comes
     // before every win in 1 in generator order, so a search that ignored the distance would choose that step.
     [TestMethod]
