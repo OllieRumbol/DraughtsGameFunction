@@ -279,7 +279,9 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
   - Verify: the standard test command
   - Notes: The values are tuned in T21. Plan section 3.7 says why the table uses only an exact depth match.
     - Also done, from plan 3.7 item 4: moves are ordered by the table's best move, then more captures first. The root keeps its own order and generator-order ties.
-    - Plan 3.5 updated: the table is 4 MB, not about 6 MB, because the best move is stored as its index in generator order. The details the plan left open for the Hard evaluation are recorded there: centre squares, the trade bonus of 2 for each missing piece, and guard or advancement for a man.
+    - Plan 3.5 updated, waiting for the owner's approval in pull request review: the table is 4 MB, not about 6 MB, because the best move is stored as its index in generator order. The details the plan left open for the Hard evaluation are recorded there: centre squares, the trade bonus of 2 for each missing piece, and guard or advancement for a man.
+    - Test 31 uses material scores with quiescence on, so its scores can be checked by hand. Test 13 covers the Hard evaluation with quiescence.
+    - No test fails when a table score from a deeper depth is used: a probe of 338 extra searches with kings showed no difference. The exact-depth rule is checked by inspection. So is the rule that quiescence counts positions, because each quiescence child goes through `Negamax`.
     - Plan 3.6 updated with the depth measured with the table, on the T14 code and this code.
     - Test 13 also runs with the Hard evaluation, on 4 of the 12 games. Its plain reference uses full-window alpha-beta in quiescence, because plain quiescence takes minutes at depth 4. A probe showed the same result as fully plain quiescence on 668 searches at depths 1 and 2. A second test 13 case uses positions with kings at depths 5 and 6, where the table reuses many scores.
     - For T16: each new `GameTreeSearch` allocates a 4 MB table. About one in 3 new searches caused a full garbage collection in a probe. A search object can be reused, because each call clears its table.

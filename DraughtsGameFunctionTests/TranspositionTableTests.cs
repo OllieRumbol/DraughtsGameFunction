@@ -106,6 +106,25 @@ public class TranspositionTableTests
         Assert.IsFalse(found);
     }
 
+    // Plan section 3.7: the slot is always replaced, so the newer of two keys that share a slot is kept.
+    [TestMethod]
+    public void Store_OtherKeyInSameSlot_ReplacesEntry()
+    {
+        // Arrange
+        var table = new TranspositionTable();
+        const ulong firstKey = 12345;
+        const ulong secondKey = firstKey + TranspositionTable.EntryCount;
+
+        // Act
+        table.Store(firstKey, depth: 5, ply: 1, score: 5, ScoreBound.Exact, bestMoveIndex: 0);
+        table.Store(secondKey, depth: 1, ply: 1, score: 7, ScoreBound.Upper, bestMoveIndex: 3);
+
+        // Assert
+        Assert.IsFalse(table.TryGet(firstKey, ply: 1, out _));
+        Assert.IsTrue(table.TryGet(secondKey, ply: 1, out var entry));
+        Assert.AreEqual(new TableEntry(Depth: 1, Score: 7, ScoreBound.Upper, BestMoveIndex: 3), entry);
+    }
+
     [TestMethod]
     public void TryGet_AfterClear_ReturnsFalse()
     {
@@ -138,6 +157,41 @@ public class TranspositionTableTests
 
         // Assert
         Assert.AreEqual(expectedScore, entry.Score);
+    }
+
+    // A win far from a shallow position, found again near the ply cap, is still a win: its root score is more than
+    // MaxPly below WinScore. Stored again there and found back at the first ply, it keeps its distance.
+    [TestMethod]
+    [DataRow(Win - 61, DisplayName = "Win")]
+    [DataRow(-Win + 61, DisplayName = "Loss")]
+    public void TryGet_WinFarFromPositionFoundNearPlyCap_KeepsDistance(int scoreAtPlyOne)
+    {
+        // Arrange
+        var table = new TranspositionTable();
+        var deepPly = GameTreeSearch.MaxPly;
+        table.Store(key: 1, depth: 3, ply: 1, scoreAtPlyOne, ScoreBound.Exact, bestMoveIndex: 0);
+
+        // Act
+        table.TryGet(1, deepPly, out var foundDeep);
+        table.Store(key: 2, depth: 3, deepPly, foundDeep.Score, ScoreBound.Exact, bestMoveIndex: 0);
+        table.TryGet(2, ply: 1, out var foundBack);
+
+        // Assert
+        Assert.AreEqual(scoreAtPlyOne - Math.Sign(scoreAtPlyOne) * (deepPly - 1), foundDeep.Score);
+        Assert.AreEqual(scoreAtPlyOne, foundBack.Score);
+    }
+
+    [TestMethod]
+    [DataRow(32, 1, DisplayName = "Short board")]
+    [DataRow(64, 0, DisplayName = "Player 0")]
+    [DataRow(64, 3, DisplayName = "Player 3")]
+    public void KeyOf_ArgumentOutOfRange_Throws(int squareCount, int player)
+    {
+        // Arrange
+        var board = new int[squareCount];
+
+        // Act and assert
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => TranspositionTable.KeyOf(board, player));
     }
 
     [TestMethod]

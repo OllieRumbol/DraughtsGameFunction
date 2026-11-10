@@ -15,8 +15,10 @@ public sealed class TranspositionTable
     /// <summary>The number of entries: 2^18, 16 bytes each, so 4 MB.</summary>
     public const int EntryCount = 1 << 18;
 
-    // A score at least this far from 0 is a win or a loss. Evaluation scores stay well below it.
-    private const int WinOrLossThreshold = GameTreeSearch.WinScore - GameTreeSearch.MaxPly;
+    // A score at least this far from 0 is a win or a loss. Evaluation scores stay well below it. A win can be up to
+    // MaxPly moves from a stored position, and that position can be found again up to MaxPly moves from the root, so
+    // a win score can be up to twice MaxPly below WinScore.
+    private const int WinOrLossThreshold = GameTreeSearch.WinScore - 2 * GameTreeSearch.MaxPly;
 
     // A fixed seed gives the same keys on every run, so a search always does the same work.
     private const int KeySeed = 20261110;
@@ -26,6 +28,9 @@ public sealed class TranspositionTable
     private static readonly ulong Player2ToMoveKey;
 
     private readonly Entry[] _entries = new Entry[EntryCount];
+
+    // False until the first Store after a Clear, so clearing an empty table, such as a new one, costs nothing.
+    private bool _hasEntries;
 
     static TranspositionTable()
     {
@@ -49,6 +54,12 @@ public sealed class TranspositionTable
     /// </summary>
     public static ulong KeyOf(int[] board, int player)
     {
+        ArgumentOutOfRangeException.ThrowIfNotEqual(board.Length, Board.SquareCount, nameof(board));
+        if (player is not (1 or 2))
+        {
+            throw new ArgumentOutOfRangeException(nameof(player), player, "The player must be 1 or 2.");
+        }
+
         var key = player == 2 ? Player2ToMoveKey : 0UL;
 
         for (var square = 0; square < Board.SquareCount; square++)
@@ -63,7 +74,16 @@ public sealed class TranspositionTable
         return key;
     }
 
-    public void Clear() => Array.Clear(_entries);
+    public void Clear()
+    {
+        if (!_hasEntries)
+        {
+            return;
+        }
+
+        Array.Clear(_entries);
+        _hasEntries = false;
+    }
 
     /// <summary>
     /// Stores a score that was searched to <paramref name="depth"/> at <paramref name="ply"/> moves from the root.
@@ -83,6 +103,7 @@ public sealed class TranspositionTable
         entry.BestMoveIndex = (short)bestMoveIndex;
         entry.Depth = (byte)depth;
         entry.Bound = bound;
+        _hasEntries = true;
     }
 
     /// <summary>

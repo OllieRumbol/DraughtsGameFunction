@@ -68,9 +68,8 @@ public class GameTreeSearchTests
     }
 
     // Test 13, with many positions reached twice: kings can step back and forth, so at depths 5 and 6 the same
-    // position comes back by many orders of moves, and at a deeper ply. The table then reuses many scores. A table that
-    // reused a score from a different depth, or used a bound as an exact score, would give a different result.
-    // The positions are from random games, once each side has a king.
+    // position comes back by many orders of moves, and the table reuses many scores. A table that used a bound as an
+    // exact score gives a different result here. The positions are from random games, once each side has a king.
     [TestMethod]
     public void Search_FixedDepthWithKings_MatchesPlainMinimax()
     {
@@ -290,13 +289,18 @@ public class GameTreeSearchTests
     // way through a depth. For every position, player and limit, the search must stop at the first reading at or past
     // the limit, and return exactly what its last finished depth returns on its own. A search that kept the best move
     // so far from the unfinished depth would differ in some of these cases. One position has only kings.
+    // The Hard evaluation also checks that quiescence and the table stop with the search.
     [TestMethod]
-    public void Search_TimeLimitPasses_ReturnsLastFinishedDepthsMove()
+    [DataRow(false, DisplayName = "Normal evaluation")]
+    [DataRow(true, DisplayName = "Hard evaluation, with quiescence")]
+    public void Search_TimeLimitPasses_ReturnsLastFinishedDepthsMove(bool hard)
     {
         // Arrange
         const int maxDepth = 20;
         var step = TimeSpan.FromMilliseconds(1);
+        IEvaluator evaluator = hard ? new PositionalEvaluator() : Evaluator;
         var positions = PlayedPositions(seed: 16, gameCount: 4, pliesBetweenPositions: 10).Append(OnlyKings()).ToList();
+        var fixedDepthSearch = new GameTreeSearch(evaluator, TimeProvider.System, tieBreaker: null);
         var mismatches = new List<string>();
         var compared = 0;
 
@@ -313,7 +317,7 @@ public class GameTreeSearchTests
                 {
                     var timeLimit = TimeSpan.FromMilliseconds(milliseconds);
                     var clock = new FakeTimeProvider { AutoAdvanceAmount = step };
-                    var search = new GameTreeSearch(Evaluator, clock, tieBreaker: null);
+                    var search = new GameTreeSearch(evaluator, clock, tieBreaker: null);
                     var start = clock.GetUtcNow();
 
                     // Act
@@ -321,7 +325,7 @@ public class GameTreeSearchTests
                     var elapsed = clock.GetUtcNow() - start;
                     var lastFinishedDepth = result.CompletedDepth == 0
                         ? new SearchResult(Generate(board, player)[0], 0, 0)
-                        : NewSearch().Search(board, player, new SearchLimits(result.CompletedDepth, null));
+                        : fixedDepthSearch.Search(board, player, new SearchLimits(result.CompletedDepth, null));
                     compared++;
 
                     // Assert
