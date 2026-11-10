@@ -285,6 +285,7 @@ A request is not valid when any of these is true. Each rule starts at the stage 
 | 4 | `Board` contains a value other than 0 to 6. | Stage 2 at the latest. It may start earlier, with the move-generation fixes. |
 | 5 | For GetPotentialMoves: `TipFor` is missing, or is not 1 or 2. | Stage 2 at the latest. It may start earlier, with the move-generation fixes. Until then, a missing `TipFor` returns an empty list, as it does today. |
 | 6 | For GetNextMove: neither `Difficulty` nor `Version` is present, or the one that is used has a value not allowed by section 6.1.1. The message lists the allowed values, for example `Difficulty must be one of: easy, normal, hard`. | Stage 2. In stage 1, an unknown `Version` is rejected as it is today (section 5.1). |
+| 7 | For GetNextMove with `Version` 2 or 3: `Depth` is missing or less than 1. | From the move-generation fixes until stage 2, when `Depth` is no longer read. Added on 2026-11-10, with the owner's approval: a search of depth 0 has no move to return (section 4.1, defect 2). |
 
 The API does not check where pieces stand. For example, a piece on a light square is not rejected.
 
@@ -362,7 +363,7 @@ Items 1 and 2 apply from stage 1. Item 3 applies once defect 2 (section 4.1) is 
 | --- | --- |
 | HTTP 200, `successful: true` | The result is in `nextMove` or `potentialMoves`. |
 | HTTP 400, `successful: false` | The request was not valid, or the computer has no legal move. `errorMessage` says which. |
-| HTTP 500, `successful: false` | An unexpected fault. `errorMessage` is a general message, with no internal detail. In stage 1 this includes a fault in the current search, such as a missing `Depth`. Today those return HTTP 400. The web app shows the same general message for both. |
+| HTTP 500, `successful: false` | An unexpected fault. `errorMessage` is a general message, with no internal detail. Before the move-generation fixes, this includes a fault in the current search, such as a missing `Depth`. The old API returned HTTP 400 for those. The web app shows the same general message for both. |
 
 ### 6.4 Non-functional requirements
 

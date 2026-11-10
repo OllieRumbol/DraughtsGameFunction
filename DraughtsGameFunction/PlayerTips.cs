@@ -21,9 +21,16 @@ public static class PlayerTips
             return BadRequest(readError);
         }
 
-        if (getPlayerTips.Board is null)
+        var boardError = RequestReader.BoardError(getPlayerTips.Board);
+        if (boardError is not null)
         {
-            return BadRequest(RequestReader.InvalidBoardMessage);
+            return BadRequest(boardError);
+        }
+
+        // Spec section 6.1.2, rule 5. A missing TipFor reads as 0.
+        if (getPlayerTips.TipFor is not (1 or 2))
+        {
+            return BadRequest(RequestReader.InvalidTipForMessage);
         }
 
         IPlayerTipsService service = new PlayerTipsService();

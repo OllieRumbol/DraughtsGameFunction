@@ -68,15 +68,49 @@ public class PlayerTipsTests
         TestHttp.AssertBadRequest(response, expectedMessage);
     }
 
-    // Spec section 6.1.2, rule 5: until that rule starts, a missing TipFor returns an empty list.
+    // Test 28: spec section 6.1.2, rule 5.
     [TestMethod]
-    public async Task Run_NoTipFor_ReturnsEmptyListAsToday()
+    [DataRow(""", "TipFor": 3""", DisplayName = "TipFor 3")]
+    [DataRow(""", "TipFor": 0""", DisplayName = "TipFor 0")]
+    [DataRow(", \"TipFor\": \"abc\"", DisplayName = "TipFor that is not a number")]
+    [DataRow(""", "TipFor": true""", DisplayName = "TipFor true")]
+    [DataRow(""", "TipFor": [1]""", DisplayName = "TipFor that is an array")]
+    [DataRow(""", "tipfor": 1.5""", DisplayName = "A lower-case TipFor that is not whole")]
+    [DataRow("", DisplayName = "No TipFor")]
+    public async Task Run_TipForIsNotOneOrTwo_ReturnsBadRequest(string tipFor)
     {
-        var body = $$"""{ "Board": {{TestHttp.StartingBoard}} }""";
+        var body = $$"""{ "Board": {{TestHttp.StartingBoard}}{{tipFor}} }""";
+
+        var response = await PostAsync(body);
+
+        TestHttp.AssertBadRequest(response, "TipFor must be 1 or 2.");
+    }
+
+    // Test 28: spec section 6.1.2, rule 4.
+    [TestMethod]
+    [DataRow(7, DisplayName = "7")]
+    [DataRow(-1, DisplayName = "-1")]
+    [DataRow(4294967297, DisplayName = "2^32 + 1, which an int cast would read as 1")]
+    public async Task Run_BoardValueOutsideZeroToSix_ReturnsBadRequest(long value)
+    {
+        var board = TestHttp.StartingBoard.Replace("[5,0,5,0,5,0,5,0]", $"[5,0,5,0,{value},0,5,0]");
+        var body = $$"""{ "Board": {{board}}, "TipFor": 1 }""";
+
+        var response = await PostAsync(body);
+
+        TestHttp.AssertBadRequest(response, "Board values must be from 0 to 6.");
+    }
+
+    // Spec section 6.1.4, item 3: the player 2 man is blocked by two kings, which a man cannot capture.
+    [TestMethod]
+    public async Task Run_PlayerHasNoLegalMove_ReturnsEmptyList()
+    {
+        var body = $$"""{ "Board": [[0,5,0,5,0,5,0,5],[5,0,5,0,5,0,5,0],[0,5,0,5,0,5,0,5],[5,0,5,0,5,0,5,0],[0,5,0,5,0,5,0,5],[5,0,5,0,5,0,5,0],[0,2,0,5,0,5,0,5],[3,0,3,0,5,0,5,0]], "TipFor": 2 }""";
 
         var response = await PostAsync(body);
 
         Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
+        Assert.IsTrue(response.Json.GetProperty("successful").GetBoolean());
         Assert.AreEqual(0, response.Json.GetProperty("potentialMoves").GetArrayLength());
     }
 

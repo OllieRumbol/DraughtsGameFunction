@@ -290,6 +290,7 @@ Section 7.3 measures it on the real app.
 | Board value outside 0 to 6, from step 2 | 400, `Board values must be from 0 to 6.` |
 | `TipFor` missing, or not 1 or 2, from step 2 | 400, `TipFor must be 1 or 2.` |
 | Player 2 has no legal move, from step 2 | 400, `Player 2 has no legal moves.` |
+| `Depth` missing or less than 1, for `Version` 2 or 3, from step 2 until step 3 | 400, `Depth must be 1 or more.` (spec section 6.1.2, rule 7) |
 | Player 2 has no legal move, or `Depth` is missing or 0, in step 1 only | The old code throws a null reference, so the middleware returns 500, not today's 400 (spec section 6.3). The web app shows the same general message for both, and it always sends a `Depth`. Accepted for this short period. |
 | Time limit reached during a search | Not an error. Returns the best move from the last finished depth. |
 | Time limit reached before depth 1 finishes | Not an error. Returns the first legal move. Only possible on an extremely overloaded instance. |
