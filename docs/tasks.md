@@ -301,7 +301,7 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - For T20: `ComputerPlayer` has no fixed-depth mode with no randomness (spec 6.1.5 item 9), and creates a new 4 MB search for each call.
     - Evidence and reviews: pull request 34.
 
-- [ ] **T17 — Switch GetNextMove to the new contract and remove the old services**
+- [x] **T17 — Switch GetNextMove to the new contract and remove the old services**
   - Refs: spec 3 goal 5, spec 4.1 defects 3, 4, 6, 7, 8, spec 6.1.1 items 5–8, spec 6.1.2 rule 6, spec 6.2 examples 2, 6, 7, 10–15, spec 6.5 item 5, plan 3.1, plan 3.3, plan 3.4, plan 3.5, plan 4, plan 7.1, tests 21, 22, 26, 27
   - Depends on: T12, T16
   - Done when:
@@ -314,13 +314,12 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - Test 3 now checks the stage 2 message for `Version: 9` (spec 6.2 example 6). Example 15 is also covered through the function.
     - Tests 21, 22, 26 and 27 pass.
   - Verify: the standard test command; then `git grep -n -E "Intstance|AutomatedPlayerServiceV[123]" -- "*.cs"` returns nothing
-  - Notes: The merge changes the live game, because the web app uses this app from T8. Play a game at each level after the deployment.
-    - The T12 rule for `Depth` below 1 is gone, because `Depth` is no longer read. Easy now plays player 2 whatever `Player` says, so its old "Easy as player 1" test now expects the no-move 400 (test 26).
-    - Test 29's "Version that is not a number" row now expects `Version must be 1, 2 or 3.` (plan 4), and is covered with the other `Version` rows in test 21.
-    - Example 13 uses a board where Easy must take a capture that loses at once for player 2, so Easy and Hard choose different moves.
-    - `PlayerTips` gets `IPlayerTipsService` through a new `AddPlayerTips` registration. The interface was kept. `FunctionServicesTests` checks the registration methods, not `Program.cs` itself. The local `func start` run checked `Program.cs`.
-    - A `Difficulty` of null counts as missing. `GetNextMove.cs` now has nullable enabled.
-    - Checked locally with `func start`: the web app's requests at each level, a `Difficulty` request and GetPotentialMoves all returned 200, and Hard took 1.01 s. A worker started with `Search__HardTimeLimitMs=0` stopped at start-up with the validation error, which closes the T16 caveat.
+  - Notes:
+    - The merge changes the live game. Play a game at each level after the deployment.
+    - The T12 `Depth` rule is gone. Easy plays player 2 whatever `Player` says (test 26). A `Difficulty` of null counts as missing, and `Version` is checked only when it is used.
+    - Example 13 uses a board where Easy's forced capture loses at once. `PlayerTips` gets `IPlayerTipsService` through `AddPlayerTips`; the interface was kept.
+    - Checked locally with `func start`: the web app's requests at each level returned 200, and a bad `Search` setting stopped the real worker at start-up, which closes the T16 caveat.
+    - Evidence and reviews: pull request 35.
 
 - [ ] **T18 — Measure the search on the live app (manual)**
   - Refs: spec 3 goal 5, spec 6.4 items 1, 6, plan 3.6, plan 5, plan 7.3 steps 3–4, plan 7.4, risks 1, 2
