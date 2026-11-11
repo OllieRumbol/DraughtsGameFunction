@@ -295,6 +295,12 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - Tests 7, 15, 17 and 23 pass.
   - Verify: the standard test command
   - Notes:
+    - Placement, which the plan left open: `Difficulty` is in the models project under `Enums` (plan 3.4), `SearchOptions` under `Options`, and `ComputerPlayer` and `ComputerMove` in the service under `Instance`, with the correct namespace spelling.
+    - `SearchOptions` limits: depth 1 to 64 (`GameTreeSearch.MaxPly`), and each time limit 1 to 10,000 ms. The upper time limit is a choice, to catch a mistyped value.
+    - Work outside the Done when list: `FindMove.ToNextMove` is now public, so the move conversion is shared. New packages: `Microsoft.Extensions.Options` in the service, and `Microsoft.Extensions.Options.DataAnnotations` in the host, both 10.0.10 to match what the host already resolved.
+    - Program.cs registers the player through `AddComputerPlayer`, and test 7 starts a host with the same registration. The real worker was not started with a bad setting.
+    - For T17: inject `ComputerPlayer`. It returns null when the player has no legal move, and throws for a player other than 1 or 2 or a board that is not 8 by 8.
+    - For T20: `ComputerPlayer` has no fixed-depth mode with no randomness (spec 6.1.5 item 9), and creates a new 4 MB search for each call.
 
 - [ ] **T17 — Switch GetNextMove to the new contract and remove the old services**
   - Refs: spec 3 goal 5, spec 4.1 defects 3, 4, 6, 7, 8, spec 6.1.1 items 5–8, spec 6.1.2 rule 6, spec 6.2 examples 2, 6, 7, 10–15, spec 6.5 item 5, plan 3.1, plan 3.3, plan 3.4, plan 3.5, plan 4, plan 7.1, tests 21, 22, 26, 27

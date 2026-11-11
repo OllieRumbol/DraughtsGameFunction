@@ -30,7 +30,8 @@ namespace DraughtsGameFunctionService.Helpers
             return results;
         }
 
-        private static NextMove ToNextMove(Move move)
+        /// <summary>A move in the API's terms: rows are heights and columns are widths.</summary>
+        public static NextMove ToNextMove(Move move)
         {
             return new NextMove
             {
