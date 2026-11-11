@@ -1,17 +1,19 @@
 using DraughtsGameFunction.Json;
 using DraughtsGameFunctionModels.Controller;
 using DraughtsGameFunctionModels.Service;
-using DraughtsGameFunctionService.Instance;
 using DraughtsGameFunctionService.Interface;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Worker;
 
 namespace DraughtsGameFunction;
 
-public static class PlayerTips
+/// <summary>
+/// GetPotentialMoves: the squares a player can move to (spec section 6.1.4). The request does not change.
+/// </summary>
+public sealed class PlayerTips(IPlayerTipsService playerTipsService)
 {
     [Function("GetPotentialMoves")]
-    public static async Task<IResult> Run(
+    public async Task<IResult> Run(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest request,
         CancellationToken ct)
     {
@@ -33,8 +35,7 @@ public static class PlayerTips
             return BadRequest(RequestReader.InvalidTipForMessage);
         }
 
-        IPlayerTipsService service = new PlayerTipsService();
-        List<Piece> potentialMoves = service.GetPotentialMoves(getPlayerTips);
+        List<Piece> potentialMoves = playerTipsService.GetPotentialMoves(getPlayerTips);
         var response = new PlayersTipsResponse { Successful = true, PotentialMoves = potentialMoves };
 
         return Results.Json(response, ApiJsonOptions.Default);

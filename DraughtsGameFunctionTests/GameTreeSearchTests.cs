@@ -498,6 +498,23 @@ public class GameTreeSearchTests
         Assert.AreEqual(2, result.Score);
     }
 
+    // Moved from the old Normal service's EvaluateTest (plan section 7.1): the starting board scores 0, as the
+    // old Normal evaluation did.
+    [TestMethod]
+    [DataRow(1)]
+    [DataRow(2)]
+    public void Evaluate_StartingBoard_ScoresZero(int player)
+    {
+        // Arrange
+        var board = Board.FromRows(StartingRows());
+
+        // Act
+        var score = Evaluator.Evaluate(board, player);
+
+        // Assert
+        Assert.AreEqual(0, score);
+    }
+
     [TestMethod]
     public void Search_PlayerHasNoLegalMove_Throws()
     {

@@ -315,6 +315,11 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - Tests 21, 22, 26 and 27 pass.
   - Verify: the standard test command; then `git grep -n -E "Intstance|AutomatedPlayerServiceV[123]" -- "*.cs"` returns nothing
   - Notes: The merge changes the live game, because the web app uses this app from T8. Play a game at each level after the deployment.
+    - The T12 rule for `Depth` below 1 is gone, because `Depth` is no longer read. Easy now plays player 2 whatever `Player` says, so its old "Easy as player 1" test now expects the no-move 400 (test 26).
+    - Test 29's "Version that is not a number" row now expects `Version must be 1, 2 or 3.` (plan 4), and is covered with the other `Version` rows in test 21.
+    - Example 13 uses a board where Easy must take a capture that loses at once for player 2, so Easy and Hard choose different moves.
+    - `PlayerTips` gets `IPlayerTipsService` through a new `AddPlayerTips` registration. The interface was kept.
+    - Checked locally with `func start`: the web app's requests at each level, a `Difficulty` request and GetPotentialMoves all returned 200, and Hard took 1.01 s. A worker started with `Search__HardTimeLimitMs=0` stopped at start-up with the validation error, which closes the T16 caveat.
 
 - [ ] **T18 — Measure the search on the live app (manual)**
   - Refs: spec 3 goal 5, spec 6.4 items 1, 6, plan 3.6, plan 5, plan 7.3 steps 3–4, plan 7.4, risks 1, 2

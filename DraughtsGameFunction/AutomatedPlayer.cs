@@ -1,22 +1,26 @@
 using DraughtsGameFunction.Json;
 using DraughtsGameFunctionModels.Controller;
-using DraughtsGameFunctionModels.Service;
-using DraughtsGameFunctionService.Engine;
-using DraughtsGameFunctionService.Interface;
-using DraughtsGameFunctionService.Intstance;
+using DraughtsGameFunctionModels.Enums;
+using DraughtsGameFunctionService.Instance;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Worker;
 
 namespace DraughtsGameFunction;
 
-public static class AutomatedPlayer
+/// <summary>
+/// GetNextMove, from stage 2 (spec section 6.1.1, item 5): the request sends <c>Difficulty</c>, or the old
+/// <c>Version</c>, and the computer plays player 2.
+/// </summary>
+public sealed class AutomatedPlayer(ComputerPlayer computerPlayer)
 {
-    private const string UnknownVersionMessage = "No version in body of request";
-    private const string InvalidDepthMessage = "Depth must be 1 or more.";
+    public const string MissingDifficultyMessage = "Difficulty is missing. It must be one of: easy, normal, hard";
     private const string NoMoveMessage = "Player 2 has no legal moves.";
 
+    // Spec section 6.1.5, item 1: from stage 2, the computer always plays player 2, whatever Player says.
+    private const int ComputerPlayerNumber = 2;
+
     [Function("GetNextMove")]
-    public static async Task<IResult> Run(
+    public async Task<IResult> Run(
         [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest request,
         CancellationToken ct)
     {
@@ -32,39 +36,41 @@ public static class AutomatedPlayer
             return BadRequest(boardError);
         }
 
-        IAutomatedPlayerService? service = getNextMove.Version switch
+        var (difficulty, difficultyError) = DifficultyOf(getNextMove);
+        if (difficulty is null)
         {
-            1 => new AutomatedPlayerServiceV1(),
-            2 => new AutomatedPlayerServiceV2(),
-            3 => new AutomatedPlayerServiceV3(),
-            _ => null
-        };
-
-        if (service is null)
-        {
-            return BadRequest(UnknownVersionMessage);
+            return BadRequest(difficultyError);
         }
 
-        // Normal and Hard search to Depth, and a search of depth 0 has no move to return (defect 2).
-        // Easy does not search. Depth stops being read in step 3 (plan section 4).
-        var searches = getNextMove.Version is 2 or 3;
-        if (searches && getNextMove.Depth < 1)
-        {
-            return BadRequest(InvalidDepthMessage);
-        }
-
-        // Spec section 6.1.5, item 3 (defect 2). Until step 3, Easy plays as the player in the request
-        // (item 1), so the check applies to Easy only when that player is 2, as the web app always sends.
-        var playsAsPlayer2 = getNextMove.Version != 1 || getNextMove.Player == 2;
-        if (playsAsPlayer2 && !MoveGenerator.HasMove(Board.FromRows(getNextMove.Board), player: 2))
+        // Spec section 6.1.5, item 3 (defect 2).
+        var computerMove = computerPlayer.GetNextMove(getNextMove.Board, ComputerPlayerNumber, difficulty.Value);
+        if (computerMove is null)
         {
             return BadRequest(NoMoveMessage);
         }
 
-        NextMove nextMove = service.GetNextMoveForAutomatedPlayer(getNextMove);
-        var response = new AutomatedPlayerResponse { Successful = true, NextMove = nextMove };
+        var response = new AutomatedPlayerResponse { Successful = true, NextMove = computerMove.Move };
 
         return Results.Json(response, ApiJsonOptions.Default);
+    }
+
+    // Spec section 6.1.1, item 8: Difficulty is used when it is present. Otherwise Version is used, with the
+    // meanings in spec section 2.3. Exactly one of the two results is set.
+    private static (Difficulty? Difficulty, string? Error) DifficultyOf(GetNextMove request)
+    {
+        if (request.Difficulty is Difficulty difficulty)
+        {
+            return (difficulty, null);
+        }
+
+        return request.Version switch
+        {
+            null => (null, MissingDifficultyMessage),
+            1 => (Difficulty.Easy, null),
+            2 => (Difficulty.Normal, null),
+            3 => (Difficulty.Hard, null),
+            _ => (null, RequestReader.InvalidVersionMessage),
+        };
     }
 
     private static IResult BadRequest(string? errorMessage)

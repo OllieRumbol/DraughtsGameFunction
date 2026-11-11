@@ -66,7 +66,7 @@ public sealed class ComputerPlayer(IOptions<SearchOptions> options, TimeProvider
         };
     }
 
-    // Spec section 6.1.5, item 4, the rule from AutomatedPlayerServiceV1: a random capture when there is one,
+    // Spec section 6.1.5, item 4, the old Easy service's rule: a random capture when there is one,
     // otherwise a random move.
     private Move ChooseEasyMove(int[] board, int player)
     {

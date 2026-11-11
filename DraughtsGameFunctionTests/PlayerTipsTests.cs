@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using DraughtsGameFunction;
+using DraughtsGameFunctionService.Instance;
 using Microsoft.AspNetCore.Http;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -76,6 +77,7 @@ public class PlayerTipsTests
     [DataRow(""", "TipFor": true""", DisplayName = "TipFor true")]
     [DataRow(""", "TipFor": [1]""", DisplayName = "TipFor that is an array")]
     [DataRow(""", "tipfor": 1.5""", DisplayName = "A lower-case TipFor that is not whole")]
+    [DataRow(", \"TipFor\": \"1\"", DisplayName = "TipFor 1 as a string (test 21)")]
     [DataRow("", DisplayName = "No TipFor")]
     public async Task Run_TipForIsNotOneOrTwo_ReturnsBadRequest(string tipFor)
     {
@@ -118,7 +120,7 @@ public class PlayerTipsTests
     {
         var request = TestHttp.CreateRequest(body, sendContentLength);
 
-        var result = await PlayerTips.Run(request, CancellationToken.None);
+        var result = await new PlayerTips(new PlayerTipsService()).Run(request, CancellationToken.None);
 
         return await TestHttp.ExecuteAsync(result, request);
     }

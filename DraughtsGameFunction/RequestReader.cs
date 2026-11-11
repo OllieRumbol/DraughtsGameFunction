@@ -16,9 +16,17 @@ internal static class RequestReader
     public const string InvalidBoardMessage = "Board must be 8 rows of 8 values.";
     public const string BoardValuesMessage = "Board values must be from 0 to 6.";
     public const string InvalidTipForMessage = "TipFor must be 1 or 2.";
+    public const string InvalidDifficultyMessage = "Difficulty must be one of: easy, normal, hard";
+    public const string InvalidVersionMessage = "Version must be 1, 2 or 3.";
 
-    private const string BoardJsonPath = "$.Board";
-    private const string TipForJsonPath = "$.TipFor";
+    // Plan section 4: the message for a value at each of these paths that cannot be read.
+    private static readonly Dictionary<string, string> MessagesByJsonPath = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["$.Board"] = InvalidBoardMessage,
+        ["$.TipFor"] = InvalidTipForMessage,
+        ["$.Difficulty"] = InvalidDifficultyMessage,
+        ["$.Version"] = InvalidVersionMessage,
+    };
 
     // The highest board value, a highlighted empty square (spec section 2.2).
     private const long HighestBoardValue = 6;
@@ -111,15 +119,10 @@ internal static class RequestReader
             return InvalidJsonMessage;
         }
 
-        // The path follows the client's letter case, for example $.board (plan section 3.5).
-        if (string.Equals(exception.Path, BoardJsonPath, StringComparison.OrdinalIgnoreCase))
+        // The path follows the client's letter case, for example $.board, so the lookup ignores case (plan section 3.5).
+        if (exception.Path is not null && MessagesByJsonPath.TryGetValue(exception.Path, out var message))
         {
-            return InvalidBoardMessage;
-        }
-
-        if (string.Equals(exception.Path, TipForJsonPath, StringComparison.OrdinalIgnoreCase))
-        {
-            return InvalidTipForMessage;
+            return message;
         }
 
         return InvalidJsonMessage;
