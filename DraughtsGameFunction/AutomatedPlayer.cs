@@ -42,8 +42,11 @@ public sealed class AutomatedPlayer(ComputerPlayer computerPlayer)
             return BadRequest(difficultyError);
         }
 
+        // BoardError rejects a missing board, so the board is set here.
+        var board = getNextMove.Board!;
+
         // Spec section 6.1.5, item 3 (defect 2).
-        var computerMove = computerPlayer.GetNextMove(getNextMove.Board, ComputerPlayerNumber, difficulty.Value);
+        var computerMove = computerPlayer.GetNextMove(board, ComputerPlayerNumber, difficulty.Value);
         if (computerMove is null)
         {
             return BadRequest(NoMoveMessage);

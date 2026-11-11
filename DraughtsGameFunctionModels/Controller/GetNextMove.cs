@@ -1,3 +1,5 @@
+#nullable enable
+
 using DraughtsGameFunctionModels.Enums;
 
 namespace DraughtsGameFunctionModels.Controller;
@@ -13,5 +15,6 @@ public class GetNextMove
     /// <summary>The old way to send the level: 1 Easy, 2 Normal, 3 Hard. Used only when Difficulty is missing.</summary>
     public long? Version { get; set; }
 
-    public long[,] Board { get; set; }
+    /// <summary>Null when the request has no board. The function rejects it.</summary>
+    public long[,]? Board { get; set; }
 }

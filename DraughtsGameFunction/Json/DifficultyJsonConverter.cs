@@ -31,7 +31,7 @@ internal sealed class DifficultyJsonConverter : JsonConverter<Difficulty>
         throw new JsonException("Difficulty is not one of the allowed names.");
     }
 
-    // The API never writes a difficulty to a client.
+    // No response holds a difficulty today. If one does, it is written as the name a request would send.
     public override void Write(Utf8JsonWriter writer, Difficulty value, JsonSerializerOptions options) =>
-        throw new NotSupportedException("The difficulty is only read from requests.");
+        writer.WriteStringValue(value.ToString().ToLowerInvariant());
 }

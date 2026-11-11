@@ -57,11 +57,13 @@ public class AutomatedPlayerTests
         Assert.AreEqual(0, nextMove.GetProperty("takes").GetArrayLength());
     }
 
-    // Spec section 6.1.1, item 2.
+    // Spec section 6.1.1, item 2: both ways to send the level work with lower-case names.
     [TestMethod]
-    public async Task Run_LowerCaseFieldNames_ReturnsMove()
+    [DataRow("\"difficulty\": \"easy\"", DisplayName = "difficulty")]
+    [DataRow("\"version\": 1", DisplayName = "version, with no difficulty")]
+    public async Task Run_LowerCaseFieldNames_ReturnsMove(string level)
     {
-        var body = $$"""{ "difficulty": "easy", "board": {{TestHttp.StartingBoard}} }""";
+        var body = $$"""{ {{level}}, "board": {{TestHttp.StartingBoard}} }""";
 
         var response = await PostAsync(body);
 
@@ -122,6 +124,7 @@ public class AutomatedPlayerTests
     [TestMethod]
     [DataRow("easy", 3, CaptureThatLoses, DisplayName = "Difficulty easy, Version 3")]
     [DataRow("hard", 1, QuietMove, DisplayName = "Difficulty hard, Version 1")]
+    [DataRow("hard", 9, QuietMove, DisplayName = "Difficulty hard, Version 9 is not checked")]
     public async Task Run_DifficultyAndVersion_UsesDifficulty(string difficulty, int version, string expectedMove)
     {
         var body = $$"""{ "Difficulty": "{{difficulty}}", "Version": {{version}}, "Board": {{CaptureThatLosesBoard}} }""";
@@ -225,9 +228,10 @@ public class AutomatedPlayerTests
         Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
     }
 
-    // Test 22 and spec section 6.2, example 7: the web app's request at Version 3 with Depth 50 returns within the
-    // Hard time limit, because Depth is not read. The old code searched to the requested depth, which took minutes.
-    // The allowance is generous, so a slow build machine does not fail the test.
+    // Test 22 and spec section 6.2, example 7: the web app's request at Version 3 with Depth 50 returns quickly,
+    // because Depth is not read. The old code searched to the requested depth, which took minutes. These tests set
+    // the Hard limit to 100 ms, and the allowance is generous, so a slow build machine does not fail the test.
+    // ComputerPlayerTests check the time limit itself, and T18 measures the production limit on the live app.
     [TestMethod]
     public async Task Run_HardWithDepthFifty_ReturnsWithinTimeLimit()
     {

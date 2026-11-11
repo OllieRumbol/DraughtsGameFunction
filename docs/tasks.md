@@ -318,7 +318,8 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - The T12 rule for `Depth` below 1 is gone, because `Depth` is no longer read. Easy now plays player 2 whatever `Player` says, so its old "Easy as player 1" test now expects the no-move 400 (test 26).
     - Test 29's "Version that is not a number" row now expects `Version must be 1, 2 or 3.` (plan 4), and is covered with the other `Version` rows in test 21.
     - Example 13 uses a board where Easy must take a capture that loses at once for player 2, so Easy and Hard choose different moves.
-    - `PlayerTips` gets `IPlayerTipsService` through a new `AddPlayerTips` registration. The interface was kept.
+    - `PlayerTips` gets `IPlayerTipsService` through a new `AddPlayerTips` registration. The interface was kept. `FunctionServicesTests` checks the registration methods, not `Program.cs` itself. The local `func start` run checked `Program.cs`.
+    - A `Difficulty` of null counts as missing. `GetNextMove.cs` now has nullable enabled.
     - Checked locally with `func start`: the web app's requests at each level, a `Difficulty` request and GetPotentialMoves all returned 200, and Hard took 1.01 s. A worker started with `Search__HardTimeLimitMs=0` stopped at start-up with the validation error, which closes the T16 caveat.
 
 - [ ] **T18 — Measure the search on the live app (manual)**
