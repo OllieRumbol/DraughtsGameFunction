@@ -125,6 +125,23 @@ public class PositionalEvaluatorTests
         Assert.IsTrue(positions.Any(board => Evaluator.Evaluate(board, player: 1) != 0), "Every position scored 0.");
     }
 
+    // Moved from the old Hard service's EvaluateTest (plan section 7.1): the starting board scores 0, as the
+    // old Hard evaluation did.
+    [TestMethod]
+    [DataRow(1)]
+    [DataRow(2)]
+    public void Evaluate_StartingBoard_ScoresZero(int player)
+    {
+        // Arrange
+        var board = Board.FromRows(StartingRows());
+
+        // Act
+        var score = Evaluator.Evaluate(board, player);
+
+        // Assert
+        Assert.AreEqual(0, score);
+    }
+
     // Plan section 3.5: quiescence is for Hard only.
     [TestMethod]
     public void UsesQuiescence_HardEvaluation_IsTrue()

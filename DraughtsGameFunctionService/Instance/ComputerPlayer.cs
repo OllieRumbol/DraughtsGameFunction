@@ -23,9 +23,8 @@ public sealed class ComputerPlayer(IOptions<SearchOptions> options, TimeProvider
     private static readonly PositionalEvaluator HardEvaluator = new();
 
     /// <summary>
-    /// The move for <paramref name="player"/>, or null when that player has no legal move. From stage 2 the function
-    /// passes player 2, and in stage 1 Easy plays as the player in the request (spec section 6.1.5, item 1).
-    /// The self-play tool passes either player.
+    /// The move for <paramref name="player"/>, or null when that player has no legal move. The function always passes
+    /// player 2 (spec section 6.1.5, item 1). The self-play tool passes either player.
     /// </summary>
     public ComputerMove? GetNextMove(long[,] board, int player, Difficulty difficulty)
     {
@@ -66,7 +65,7 @@ public sealed class ComputerPlayer(IOptions<SearchOptions> options, TimeProvider
         };
     }
 
-    // Spec section 6.1.5, item 4, the rule from AutomatedPlayerServiceV1: a random capture when there is one,
+    // Spec section 6.1.5, item 4, the old Easy service's rule: a random capture when there is one,
     // otherwise a random move.
     private Move ChooseEasyMove(int[] board, int player)
     {
