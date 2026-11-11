@@ -15,6 +15,7 @@ builder.UseMiddleware<RequestLoggingMiddleware>();
 builder.UseMiddleware<ExceptionHandlingMiddleware>();
 
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddComputerPlayer(builder.Configuration);
 builder.Services.AddWorkerTelemetry(builder.Configuration);
 
 builder.Build().Run();

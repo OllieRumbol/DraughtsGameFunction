@@ -284,7 +284,7 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - For T18: look for garbage-collection pauses; the first choice is to reuse tables between requests. For T21: the evaluation values are tuned there.
     - Evidence and reviews: pull request 33.
 
-- [ ] **T16 — Add `ComputerPlayer` and the search settings**
+- [x] **T16 — Add `ComputerPlayer` and the search settings**
   - Refs: spec 6.1.5 items 1, 2, 4–7, spec 6.2 example 16, spec 6.4 item 1, plan 2, plan 3.2, plan 3.3, plan 3.4, tests 7, 15, 17, 23
   - Depends on: T15
   - Done when:
@@ -295,6 +295,11 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - Tests 7, 15, 17 and 23 pass.
   - Verify: the standard test command
   - Notes:
+    - Placement: `Difficulty` in the models project under `Enums`, `SearchOptions` under `Options` (depth 1 to 64, tied to `MaxPly` by a test; time limits 1 to 10,000 ms), and `ComputerPlayer` and `ComputerMove` in the service under `Instance`.
+    - Also done: `FindMove.ToNextMove` is public. New packages `Microsoft.Extensions.Options` and `Microsoft.Extensions.Options.DataAnnotations`, 10.0.10. Test 7 starts a Generic Host with the `Program.cs` registration; the real worker was not started with a bad setting.
+    - For T17: inject `ComputerPlayer`. It returns null with no legal move, and throws for a bad player, board or difficulty.
+    - For T20: `ComputerPlayer` has no fixed-depth mode with no randomness (spec 6.1.5 item 9), and creates a new 4 MB search for each call.
+    - Evidence and reviews: pull request 34.
 
 - [ ] **T17 — Switch GetNextMove to the new contract and remove the old services**
   - Refs: spec 3 goal 5, spec 4.1 defects 3, 4, 6, 7, 8, spec 6.1.1 items 5–8, spec 6.1.2 rule 6, spec 6.2 examples 2, 6, 7, 10–15, spec 6.5 item 5, plan 3.1, plan 3.3, plan 3.4, plan 3.5, plan 4, plan 7.1, tests 21, 22, 26, 27
