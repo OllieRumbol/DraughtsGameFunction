@@ -33,7 +33,7 @@ public class ComputerPlayerTests
         // Act
         for (var request = 0; request < 20; request++)
         {
-            returned.Add(Text(player.GetNextMove(board, player: 2, Difficulty.Normal)!.Move));
+            returned.Add(Text(MoveFor(player, board, Difficulty.Normal).Move));
         }
 
         // Assert
@@ -49,10 +49,10 @@ public class ComputerPlayerTests
         var player = NewPlayer(new SearchOptions(), new FakeTimeProvider(), new Random(17));
 
         // Act
-        var move = player.GetNextMove(StartingRows(), player: 2, Difficulty.Normal);
+        var move = MoveFor(player, StartingRows(), Difficulty.Normal);
 
         // Assert
-        Assert.AreEqual(6, move!.CompletedDepth);
+        Assert.AreEqual(6, move.CompletedDepth);
     }
 
     // Test 17: Hard has no maximum depth, so it searches past 6 until its time limit. The fake clock moves on 1 ms
@@ -65,10 +65,10 @@ public class ComputerPlayerTests
         var player = NewPlayer(new SearchOptions(), clock, new Random(17));
 
         // Act
-        var move = player.GetNextMove(StartingRows(), player: 2, Difficulty.Hard);
+        var move = MoveFor(player, StartingRows(), Difficulty.Hard);
 
         // Assert
-        Assert.IsGreaterThan(6, move!.CompletedDepth);
+        Assert.IsGreaterThan(6, move.CompletedDepth);
     }
 
     // Test 23 and spec section 6.1.5, item 4: Easy always takes a capture when one exists, and chooses between the
@@ -86,7 +86,7 @@ public class ComputerPlayerTests
         // Act
         for (var request = 0; request < 30; request++)
         {
-            var move = player.GetNextMove(board, player: 2, Difficulty.Easy)!;
+            var move = MoveFor(player, board, Difficulty.Easy);
             returned.Add(Text(move.Move));
 
             Assert.AreEqual(0, move.CompletedDepth);
@@ -110,7 +110,7 @@ public class ComputerPlayerTests
         // Act
         for (var request = 0; request < 30; request++)
         {
-            returned.Add(Text(player.GetNextMove(board, player: 2, Difficulty.Easy)!.Move));
+            returned.Add(Text(MoveFor(player, board, Difficulty.Easy).Move));
         }
 
         // Assert
@@ -130,11 +130,32 @@ public class ComputerPlayerTests
         var player = NewPlayer(settings, new FakeTimeProvider(), new Random(16));
 
         // Act
-        var move = player.GetNextMove(Rows(board), player: 2, Difficulty.Normal)!;
+        var move = MoveFor(player, Rows(board), Difficulty.Normal);
 
         // Assert
-        Assert.AreEqual(Text(material.Move), Text(move.Move));
+        Assert.AreEqual(Describe(material.Move), Text(move.Move));
         Assert.AreEqual(3, move.CompletedDepth);
+    }
+
+    // Normal stops at the Normal time limit, not the Hard one: with a maximum depth too deep to reach, the same move
+    // and depth as a material search at 50 ms, on clocks that move on 1 ms at each reading.
+    [TestMethod]
+    public void GetNextMove_NormalWithDepthOutOfReach_StopsAtNormalTimeLimit()
+    {
+        // Arrange
+        var settings = new SearchOptions { NormalMaxDepth = GameTreeSearch.MaxPly, NormalTimeLimitMs = 50 };
+        var board = StartingRows();
+        var expected = new GameTreeSearch(new MaterialEvaluator(), AdvancingClock(), new Random(16))
+            .Search(Board.FromRows(board), 2, new SearchLimits(GameTreeSearch.MaxPly, TimeSpan.FromMilliseconds(50)));
+        var player = NewPlayer(settings, AdvancingClock(), new Random(16));
+
+        // Act
+        var move = MoveFor(player, board, Difficulty.Normal);
+
+        // Assert
+        Assert.IsLessThan(GameTreeSearch.MaxPly, expected.CompletedDepth, "The time limit should stop the search.");
+        Assert.AreEqual(Describe(expected.Move), Text(move.Move));
+        Assert.AreEqual(expected.CompletedDepth, move.CompletedDepth);
     }
 
     // Hard searches with the positional evaluation, no maximum depth and the Hard time limit: the same move and depth
@@ -149,10 +170,10 @@ public class ComputerPlayerTests
         var player = NewPlayer(settings, AdvancingClock(), new Random(16));
 
         // Act
-        var move = player.GetNextMove(Rows(board), player: 2, Difficulty.Hard)!;
+        var move = MoveFor(player, Rows(board), Difficulty.Hard);
 
         // Assert
-        Assert.AreEqual(Text(positional.Move), Text(move.Move));
+        Assert.AreEqual(Describe(positional.Move), Text(move.Move));
         Assert.AreEqual(positional.CompletedDepth, move.CompletedDepth);
     }
 
@@ -183,7 +204,7 @@ public class ComputerPlayerTests
         var player = NewPlayer(new SearchOptions(), TimeProvider.System, new Random(18));
 
         // Act
-        var move = player.GetNextMove(board, player: 2, Difficulty.Hard)!;
+        var move = MoveFor(player, board, Difficulty.Hard);
 
         // Assert
         Assert.AreEqual("(5,0)->(6,1)", Text(move.Move));
@@ -213,19 +234,31 @@ public class ComputerPlayerTests
         Assert.ThrowsExactly<ArgumentException>(() => player.GetNextMove(new long[7, 8], 2, Difficulty.Easy));
     }
 
+    // The difficulty is checked first, so the board cannot hide a bad difficulty behind "no legal move".
     [TestMethod]
-    public void GetNextMove_UnknownDifficulty_Throws()
+    [DataRow(false, DisplayName = "Board with moves")]
+    [DataRow(true, DisplayName = "Board with no legal move")]
+    public void GetNextMove_UnknownDifficulty_Throws(bool noLegalMove)
     {
         // Arrange
+        var board = noLegalMove ? Rows(Create((6, 1, Board.Player1Man))) : StartingRows();
         var player = NewPlayer(new SearchOptions(), TimeProvider.System, new Random(1));
 
         // Act and assert
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(
-            () => player.GetNextMove(StartingRows(), 2, (Difficulty)7));
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => player.GetNextMove(board, 2, (Difficulty)7));
     }
 
     private static ComputerPlayer NewPlayer(SearchOptions settings, TimeProvider clock, Random random) =>
         new(Options.Create(settings), clock, random);
+
+    // Player 2's move. Every board these tests pass has a legal move for player 2, so null is a failure.
+    private static ComputerMove MoveFor(ComputerPlayer player, long[,] board, Difficulty difficulty)
+    {
+        var move = player.GetNextMove(board, player: 2, difficulty);
+        Assert.IsNotNull(move, "Player 2 should have a legal move.");
+
+        return move;
+    }
 
     private static FakeTimeProvider AdvancingClock() => new() { AutoAdvanceAmount = TimeSpan.FromMilliseconds(1) };
 
@@ -263,8 +296,6 @@ public class ComputerPlayerTests
 
         return rows;
     }
-
-    private static string Text(Move move) => Text(FindMove.ToNextMove(move));
 
     // For example "(2,1)->(4,3) x(3,2)".
     private static string Text(NextMove move)

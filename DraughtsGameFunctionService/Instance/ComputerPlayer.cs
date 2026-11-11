@@ -7,6 +7,7 @@ using DraughtsGameFunctionService.Helpers;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace DraughtsGameFunctionService.Instance;
@@ -22,8 +23,9 @@ public sealed class ComputerPlayer(IOptions<SearchOptions> options, TimeProvider
     private static readonly PositionalEvaluator HardEvaluator = new();
 
     /// <summary>
-    /// The move for <paramref name="player"/>, or null when that player has no legal move. The function always passes
-    /// player 2. The self-play tool passes either player.
+    /// The move for <paramref name="player"/>, or null when that player has no legal move. From stage 2 the function
+    /// passes player 2, and in stage 1 Easy plays as the player in the request (spec section 6.1.5, item 1).
+    /// The self-play tool passes either player.
     /// </summary>
     public ComputerMove? GetNextMove(long[,] board, int player, Difficulty difficulty)
     {
@@ -36,6 +38,11 @@ public sealed class ComputerPlayer(IOptions<SearchOptions> options, TimeProvider
         if (player is not (1 or 2))
         {
             throw new ArgumentOutOfRangeException(nameof(player), player, "The player must be 1 or 2.");
+        }
+
+        if (!Enum.IsDefined(difficulty))
+        {
+            throw new ArgumentOutOfRangeException(nameof(difficulty), difficulty, "Unknown difficulty.");
         }
 
         var engineBoard = Board.FromRows(board);
@@ -55,7 +62,7 @@ public sealed class ComputerPlayer(IOptions<SearchOptions> options, TimeProvider
                 settings.NormalMaxDepth, TimeSpan.FromMilliseconds(settings.NormalTimeLimitMs))),
             Difficulty.Hard => Search(engineBoard, player, HardEvaluator, new SearchLimits(
                 MaxDepth: null, TimeSpan.FromMilliseconds(settings.HardTimeLimitMs))),
-            _ => throw new ArgumentOutOfRangeException(nameof(difficulty), difficulty, "Unknown difficulty."),
+            _ => throw new UnreachableException($"Difficulty {difficulty} has no search."),
         };
     }
 

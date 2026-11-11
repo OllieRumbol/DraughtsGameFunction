@@ -1,5 +1,6 @@
 using DraughtsGameFunction.Extensions;
 using DraughtsGameFunctionModels.Options;
+using DraughtsGameFunctionService.Engine;
 using DraughtsGameFunctionService.Instance;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -56,22 +57,40 @@ public class ComputerPlayerExtensionsTests
         Assert.AreEqual(800, settings.HardTimeLimitMs);
     }
 
-    // The largest allowed values: the search's ply cap, and 10 seconds.
+    // The allowed limits: 10 seconds at most, and 1 at least.
     [TestMethod]
-    [DataRow("NormalMaxDepth", "64")]
-    [DataRow("NormalTimeLimitMs", "10000")]
-    [DataRow("HardTimeLimitMs", "10000")]
-    [DataRow("HardTimeLimitMs", "1")]
-    public async Task AddComputerPlayer_SettingAtItsLimit_Starts(string name, string value)
+    [DataRow("NormalMaxDepth", 1)]
+    [DataRow("NormalTimeLimitMs", 10000)]
+    [DataRow("HardTimeLimitMs", 10000)]
+    [DataRow("HardTimeLimitMs", 1)]
+    public async Task AddComputerPlayer_SettingAtItsLimit_StartsWithThatValue(string name, int value)
     {
         // Arrange
-        using var host = BuildHost(new() { [$"Search:{name}"] = value });
+        using var host = BuildHost(new() { [$"Search:{name}"] = value.ToString() });
 
         // Act
         await host.StartAsync();
+        var settings = host.Services.GetRequiredService<IOptions<SearchOptions>>().Value;
 
         // Assert
-        Assert.IsNotNull(host.Services.GetRequiredService<IOptions<SearchOptions>>().Value);
+        Assert.AreEqual(value, ValueOf(settings, name));
+    }
+
+    // The deepest Normal setting is the search's own ply cap, so a setting that passes start-up never makes the
+    // search throw during a game.
+    [TestMethod]
+    public async Task AddComputerPlayer_NormalMaxDepthAtSearchCap_StartsAndOneMoreStops()
+    {
+        // Arrange
+        using var atCap = BuildHost(new() { ["Search:NormalMaxDepth"] = $"{GameTreeSearch.MaxPly}" });
+        using var pastCap = BuildHost(new() { ["Search:NormalMaxDepth"] = $"{GameTreeSearch.MaxPly + 1}" });
+
+        // Act
+        await atCap.StartAsync();
+
+        // Assert
+        Assert.AreEqual(GameTreeSearch.MaxPly, atCap.Services.GetRequiredService<IOptions<SearchOptions>>().Value.NormalMaxDepth);
+        await Assert.ThrowsExactlyAsync<OptionsValidationException>(() => pastCap.StartAsync());
     }
 
     [TestMethod]
@@ -116,6 +135,14 @@ public class ComputerPlayerExtensionsTests
         Assert.AreSame(Random.Shared, random);
         Assert.IsNotNull(player);
     }
+
+    private static int ValueOf(SearchOptions settings, string name) => name switch
+    {
+        nameof(SearchOptions.NormalMaxDepth) => settings.NormalMaxDepth,
+        nameof(SearchOptions.NormalTimeLimitMs) => settings.NormalTimeLimitMs,
+        nameof(SearchOptions.HardTimeLimitMs) => settings.HardTimeLimitMs,
+        _ => throw new ArgumentOutOfRangeException(nameof(name), name, "Unknown setting."),
+    };
 
     // No default sources, so environment variables on the machine cannot change a result.
     private static IHost BuildHost(Dictionary<string, string?> settings)
