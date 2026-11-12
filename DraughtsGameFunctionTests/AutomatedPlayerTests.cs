@@ -9,6 +9,9 @@ using DraughtsGameFunctionModels.Options;
 using DraughtsGameFunctionService.Engine;
 using DraughtsGameFunctionService.Instance;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using static DraughtsGameFunctionTests.EngineBoards;
@@ -355,6 +358,37 @@ public class AutomatedPlayerTests
         TestHttp.AssertBadRequest(response, "Board values must be from 0 to 6.");
     }
 
+    // Temporary, for T18 (plan section 7.3, step 3): each move logs its level and the depth the search finished,
+    // as named values for the query. T19 removes the line and this test.
+    [TestMethod]
+    public async Task Run_MoveReturned_LogsLevelAndCompletedDepth()
+    {
+        var logger = new FakeLogger<AutomatedPlayer>();
+        var request = TestHttp.CreateRequest($$"""{ "Difficulty": "easy", "Board": {{TestHttp.StartingBoard}} }""");
+
+        var result = await NewFunction(logger).Run(request, CancellationToken.None);
+        await TestHttp.ExecuteAsync(result, request);
+
+        var record = logger.Collector.GetSnapshot().Single();
+        Assert.AreEqual(LogLevel.Information, record.Level);
+        Assert.AreEqual("GetNextMove Easy finished depth 0", record.Message);
+        Assert.AreEqual("Easy", record.GetStructuredStateValue("Difficulty"));
+        Assert.AreEqual("0", record.GetStructuredStateValue("CompletedDepth"));
+    }
+
+    // A request that gets no move logs no depth.
+    [TestMethod]
+    public async Task Run_NoMoveReturned_LogsNothing()
+    {
+        var logger = new FakeLogger<AutomatedPlayer>();
+        var request = TestHttp.CreateRequest($$"""{ "Board": {{TestHttp.StartingBoard}} }""");
+
+        var result = await NewFunction(logger).Run(request, CancellationToken.None);
+        await TestHttp.ExecuteAsync(result, request);
+
+        Assert.AreEqual(0, logger.Collector.Count);
+    }
+
     // A local run showed that a client which disconnects during the upload causes this exception.
     [TestMethod]
     public async Task Run_ClientStopsSendingTheBody_ReturnsBadRequest()
@@ -381,9 +415,14 @@ public class AutomatedPlayerTests
 
     private static AutomatedPlayer NewFunction()
     {
+        return NewFunction(NullLogger<AutomatedPlayer>.Instance);
+    }
+
+    private static AutomatedPlayer NewFunction(ILogger<AutomatedPlayer> logger)
+    {
         var settings = new SearchOptions { NormalTimeLimitMs = TestTimeLimitMs, HardTimeLimitMs = TestTimeLimitMs };
 
-        return new AutomatedPlayer(new ComputerPlayer(Options.Create(settings), TimeProvider.System, new Random(17)));
+        return new AutomatedPlayer(new ComputerPlayer(Options.Create(settings), TimeProvider.System, new Random(17)), logger);
     }
 
     private static string PaddedBody(int sizeInBytes)

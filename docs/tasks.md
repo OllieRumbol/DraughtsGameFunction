@@ -332,6 +332,9 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - 12 requests at once are sent again, and the result is recorded.
   - Verify: the query in plan section 5, for each level's time window, in the pull request
   - Notes: If a limit is not met, the first choices are a lower time limit or 2,048 MB. Both need the owner's approval (risk 1). T19 removes the log line.
+    - Checkpoint, 2026-11-12. Done: the temporary line `GetNextMove {Difficulty} finished depth {CompletedDepth}` in `AutomatedPlayer`, with its category at Information in `appsettings.json`, and tests. The throwaway script is in this task's first pull request.
+    - Next: the owner merges the first pull request, which deploys the line, and signs in with `az login`. Claude runs the script against the live app, reads the times and depths with the plan 5 query, and records them in a follow-up pull request that updates plan 3.6 and 7.4 and ticks this task.
+    - The script reads the app's URL from the `API` environment variable, so the URL is not written to a file or the output.
 
 - [ ] **T19 — Remove the temporary log line**
   - Refs: spec 6.4 item 6, plan 7.3 step 3

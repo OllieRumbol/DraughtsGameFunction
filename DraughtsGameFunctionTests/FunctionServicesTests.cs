@@ -23,7 +23,9 @@ public class FunctionServicesTests
     {
         // Arrange
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>()).Build();
+        // The worker registers logging itself. Program.cs registers the rest.
         var services = new ServiceCollection()
+            .AddLogging()
             .AddSingleton(TimeProvider.System)
             .AddComputerPlayer(configuration)
             .AddPlayerTips();
