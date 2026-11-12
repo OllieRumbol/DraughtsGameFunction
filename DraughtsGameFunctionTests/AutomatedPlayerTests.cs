@@ -9,6 +9,9 @@ using DraughtsGameFunctionModels.Options;
 using DraughtsGameFunctionService.Engine;
 using DraughtsGameFunctionService.Instance;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using static DraughtsGameFunctionTests.EngineBoards;
@@ -355,6 +358,56 @@ public class AutomatedPlayerTests
         TestHttp.AssertBadRequest(response, "Board values must be from 0 to 6.");
     }
 
+    // Temporary, for T18 (plan section 7.3, step 3): each move logs its level and the depth the search finished,
+    // as named values for the query. T19 removes the line and this test.
+    [TestMethod]
+    public async Task Run_MoveReturned_LogsLevelAndCompletedDepth()
+    {
+        var logger = new FakeLogger<AutomatedPlayer>();
+        var request = TestHttp.CreateRequest($$"""{ "Difficulty": "easy", "Board": {{TestHttp.StartingBoard}} }""");
+
+        var result = await NewFunction(logger).Run(request, CancellationToken.None);
+        await TestHttp.ExecuteAsync(result, request);
+
+        var record = logger.Collector.GetSnapshot().Single();
+        Assert.AreEqual(LogLevel.Information, record.Level);
+        Assert.AreEqual("GetNextMove Easy finished depth 0", record.Message);
+        Assert.AreEqual("Easy", record.GetStructuredStateValue("Difficulty"));
+        Assert.AreEqual("0", record.GetStructuredStateValue("CompletedDepth"));
+    }
+
+    // Temporary, for T18: a search logs the depth it finished, not a fixed value. From the starting board, Normal
+    // finishes at least depth 1 in the test time limit.
+    [TestMethod]
+    public async Task Run_NormalMoveReturned_LogsDepthTheSearchFinished()
+    {
+        var logger = new FakeLogger<AutomatedPlayer>();
+        var request = TestHttp.CreateRequest($$"""{ "Difficulty": "normal", "Board": {{TestHttp.StartingBoard}} }""");
+
+        var result = await NewFunction(logger).Run(request, CancellationToken.None);
+        await TestHttp.ExecuteAsync(result, request);
+
+        var record = logger.Collector.GetSnapshot().Single();
+        Assert.AreEqual("Normal", record.GetStructuredStateValue("Difficulty"));
+        Assert.IsGreaterThanOrEqualTo(1, int.Parse(record.GetStructuredStateValue("CompletedDepth")!));
+    }
+
+    // A request that gets no move logs no depth: a request that cannot be used, or one where player 2 has no legal
+    // move.
+    [TestMethod]
+    [DataRow("{ \"Board\": " + TestHttp.StartingBoard + " }", DisplayName = "No difficulty")]
+    [DataRow("{ \"Difficulty\": \"hard\", \"Board\": " + NoPlayerTwoPieces + " }", DisplayName = "No legal move")]
+    public async Task Run_NoMoveReturned_LogsNothing(string body)
+    {
+        var logger = new FakeLogger<AutomatedPlayer>();
+        var request = TestHttp.CreateRequest(body);
+
+        var result = await NewFunction(logger).Run(request, CancellationToken.None);
+        await TestHttp.ExecuteAsync(result, request);
+
+        Assert.AreEqual(0, logger.Collector.Count);
+    }
+
     // A local run showed that a client which disconnects during the upload causes this exception.
     [TestMethod]
     public async Task Run_ClientStopsSendingTheBody_ReturnsBadRequest()
@@ -381,9 +434,14 @@ public class AutomatedPlayerTests
 
     private static AutomatedPlayer NewFunction()
     {
+        return NewFunction(NullLogger<AutomatedPlayer>.Instance);
+    }
+
+    private static AutomatedPlayer NewFunction(ILogger<AutomatedPlayer> logger)
+    {
         var settings = new SearchOptions { NormalTimeLimitMs = TestTimeLimitMs, HardTimeLimitMs = TestTimeLimitMs };
 
-        return new AutomatedPlayer(new ComputerPlayer(Options.Create(settings), TimeProvider.System, new Random(17)));
+        return new AutomatedPlayer(new ComputerPlayer(Options.Create(settings), TimeProvider.System, new Random(17)), logger);
     }
 
     private static string PaddedBody(int sizeInBytes)
