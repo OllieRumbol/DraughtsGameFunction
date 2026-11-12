@@ -345,6 +345,9 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - The logs show only the per-request line, warnings and errors.
   - Verify: the standard test command; then `git grep -n "CompletedDepth" -- "DraughtsGameFunction/*.cs" "DraughtsGameFunctionService/Instance/*.cs"` finds no log call
   - Notes:
+    - Checkpoint, 2026-11-12. Done: the four files T18 changed are back to their state before T18 (`d3f31b2`), which removes the log call, the logger parameter, the `appsettings.json` entry, the temporary tests and `.AddLogging()`. The grep lists only the `CompletedDepth` property in `ComputerMove` and its uses in `ComputerPlayer`.
+    - Also done: `AppSettings_LogLevels_KeepOnlyTheRequestLineAtInformation` now fails if any category other than the request line logs below Warning.
+    - Next: after the merge, Claude checks the deploy, and with the owner signed in to Azure, queries the logs after the deploy for any Information line that is not the request line. A small follow-up pull request ticks this task.
 
 ## Phase 4 — Levels
 

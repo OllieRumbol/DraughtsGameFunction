@@ -4,7 +4,6 @@ using DraughtsGameFunctionModels.Enums;
 using DraughtsGameFunctionService.Instance;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Logging;
 
 namespace DraughtsGameFunction;
 
@@ -12,7 +11,7 @@ namespace DraughtsGameFunction;
 /// GetNextMove, from stage 2 (spec section 6.1.1, item 5): the request sends <c>Difficulty</c>, or the old
 /// <c>Version</c>, and the computer plays player 2.
 /// </summary>
-public sealed class AutomatedPlayer(ComputerPlayer computerPlayer, ILogger<AutomatedPlayer> logger)
+public sealed class AutomatedPlayer(ComputerPlayer computerPlayer)
 {
     public const string MissingDifficultyMessage = "Difficulty is missing. It must be one of: easy, normal, hard";
     private const string NoMoveMessage = "Player 2 has no legal moves.";
@@ -52,11 +51,6 @@ public sealed class AutomatedPlayer(ComputerPlayer computerPlayer, ILogger<Autom
         {
             return BadRequest(NoMoveMessage);
         }
-
-        // Temporary, for T18: the depth each level reaches on Azure (plan section 7.3, step 3). T19 removes it,
-        // because spec section 6.4, item 6, does not allow search detail in the logs.
-        logger.LogInformation(
-            "GetNextMove {Difficulty} finished depth {CompletedDepth}", difficulty.Value, computerMove.CompletedDepth);
 
         var response = new AutomatedPlayerResponse { Successful = true, NextMove = computerMove.Move };
 
