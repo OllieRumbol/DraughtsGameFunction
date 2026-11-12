@@ -376,12 +376,31 @@ public class AutomatedPlayerTests
         Assert.AreEqual("0", record.GetStructuredStateValue("CompletedDepth"));
     }
 
-    // A request that gets no move logs no depth.
+    // Temporary, for T18: a search logs the depth it finished, not a fixed value. From the starting board, Normal
+    // finishes at least depth 1 in the test time limit.
     [TestMethod]
-    public async Task Run_NoMoveReturned_LogsNothing()
+    public async Task Run_NormalMoveReturned_LogsDepthTheSearchFinished()
     {
         var logger = new FakeLogger<AutomatedPlayer>();
-        var request = TestHttp.CreateRequest($$"""{ "Board": {{TestHttp.StartingBoard}} }""");
+        var request = TestHttp.CreateRequest($$"""{ "Difficulty": "normal", "Board": {{TestHttp.StartingBoard}} }""");
+
+        var result = await NewFunction(logger).Run(request, CancellationToken.None);
+        await TestHttp.ExecuteAsync(result, request);
+
+        var record = logger.Collector.GetSnapshot().Single();
+        Assert.AreEqual("Normal", record.GetStructuredStateValue("Difficulty"));
+        Assert.IsGreaterThanOrEqualTo(1, int.Parse(record.GetStructuredStateValue("CompletedDepth")!));
+    }
+
+    // A request that gets no move logs no depth: a request that cannot be used, or one where player 2 has no legal
+    // move.
+    [TestMethod]
+    [DataRow("{ \"Board\": " + TestHttp.StartingBoard + " }", DisplayName = "No difficulty")]
+    [DataRow("{ \"Difficulty\": \"hard\", \"Board\": " + NoPlayerTwoPieces + " }", DisplayName = "No legal move")]
+    public async Task Run_NoMoveReturned_LogsNothing(string body)
+    {
+        var logger = new FakeLogger<AutomatedPlayer>();
+        var request = TestHttp.CreateRequest(body);
 
         var result = await NewFunction(logger).Run(request, CancellationToken.None);
         await TestHttp.ExecuteAsync(result, request);
