@@ -77,10 +77,9 @@ public class RequestLoggingMiddlewareTests
         var path = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
         var levels = JsonDocument.Parse(File.ReadAllText(path)).RootElement.GetProperty("Logging").GetProperty("LogLevel");
         var requestLineCategory = typeof(RequestLoggingMiddleware).FullName!; // FullName is null only for generic parameters.
-        string[] belowWarning = ["Trace", "Debug", "Information"];
 
         var categoriesBelowWarning = levels.EnumerateObject()
-            .Where(level => belowWarning.Contains(level.Value.GetString(), StringComparer.OrdinalIgnoreCase))
+            .Where(level => Enum.Parse<LogLevel>(level.Value.GetString()!, ignoreCase: true) < LogLevel.Warning) // Every level is a string.
             .Select(level => level.Name)
             .ToList();
 

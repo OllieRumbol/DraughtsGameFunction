@@ -338,7 +338,7 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - For T19, revert all of it: the log call and the `ILogger<AutomatedPlayer>` parameter, the `appsettings.json` entry, the three temporary tests, and `.AddLogging()` in `FunctionServicesTests`. T19's grep also lists the `CompletedDepth` property in `ComputerMove` and `ComputerPlayer`, which are not log calls. `AppSettings_LogLevels_KeepOnlyTheRequestLineAtInformation` could then check that no other category is at Information.
 
 - [ ] **T19 — Remove the temporary log line**
-  - Refs: spec 6.4 item 6, plan 7.3 step 3
+  - Refs: spec 6.4 item 6, plan 5, plan 7.3 step 3
   - Depends on: T18
   - Done when:
     - The log line from T18 is removed, and the change is deployed.
@@ -346,7 +346,7 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
   - Verify: the standard test command; then `git grep -n "CompletedDepth" -- "DraughtsGameFunction/*.cs" "DraughtsGameFunctionService/Instance/*.cs"` finds no log call
   - Notes:
     - Checkpoint, 2026-11-12. Done: the four files T18 changed are back to their state before T18 (`d3f31b2`), which removes the log call, the logger parameter, the `appsettings.json` entry, the temporary tests and `.AddLogging()`. The grep lists only the `CompletedDepth` property in `ComputerMove` and its uses in `ComputerPlayer`.
-    - Also done: `AppSettings_LogLevels_KeepOnlyTheRequestLineAtInformation` now fails if any category other than the request line logs below Warning.
+    - Also done: `AppSettings_LogLevels_KeepOnlyTheRequestLineAtInformation` now fails if any category other than the request line logs below Warning (plan 5), so a temporary entry cannot be left behind. Nothing failed.
     - Next: after the merge, Claude checks the deploy, and with the owner signed in to Azure, queries the logs after the deploy for any Information line that is not the request line. A small follow-up pull request ticks this task.
 
 ## Phase 4 — Levels
