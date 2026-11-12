@@ -69,15 +69,23 @@ public class RequestLoggingMiddlewareTests
         Assert.AreEqual("500", logger.Collector.GetSnapshot().Single().GetStructuredStateValue("StatusCode"));
     }
 
-    // A wrong category name here would remove the request line without any error.
+    // A wrong category name here would remove the request line without any error. Spec section 6.4, item 6: no other
+    // category may log below Warning, so a temporary entry such as T18's cannot be left behind.
     [TestMethod]
     public void AppSettings_LogLevels_KeepOnlyTheRequestLineAtInformation()
     {
         var path = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
         var levels = JsonDocument.Parse(File.ReadAllText(path)).RootElement.GetProperty("Logging").GetProperty("LogLevel");
+        var requestLineCategory = typeof(RequestLoggingMiddleware).FullName!; // FullName is null only for generic parameters.
+
+        var categoriesBelowWarning = levels.EnumerateObject()
+            .Where(level => Enum.Parse<LogLevel>(level.Value.GetString()!, ignoreCase: true) < LogLevel.Warning) // Every level is a string.
+            .Select(level => level.Name)
+            .ToList();
 
         Assert.AreEqual("Warning", levels.GetProperty("Default").GetString());
-        Assert.AreEqual("Information", levels.GetProperty(typeof(RequestLoggingMiddleware).FullName!).GetString()); // FullName is null only for generic parameters.
+        CollectionAssert.AreEqual(new[] { requestLineCategory }, categoriesBelowWarning);
+        Assert.AreEqual("Information", levels.GetProperty(requestLineCategory).GetString());
     }
 
     private static DefaultHttpContext CreateHttpContext(string path)
