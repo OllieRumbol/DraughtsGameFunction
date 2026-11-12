@@ -321,7 +321,7 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - Checked locally with `func start`: the web app's requests at each level returned 200, and a bad `Search` setting stopped the real worker at start-up, which closes the T16 caveat.
     - Evidence and reviews: pull request 35.
 
-- [ ] **T18 — Measure the search on the live app (manual)**
+- [x] **T18 — Measure the search on the live app (manual)**
   - Refs: spec 3 goal 5, spec 6.4 items 1, 6, plan 3.6, plan 5, plan 7.3 steps 3–4, plan 7.4, risks 1, 2
   - Depends on: T17
   - Done when:
