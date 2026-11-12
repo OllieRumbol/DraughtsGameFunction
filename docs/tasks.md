@@ -332,11 +332,10 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - 12 requests at once are sent again, and the result is recorded.
   - Verify: the query in plan section 5, for each level's time window, in the pull request
   - Notes: If a limit is not met, the first choices are a lower time limit or 2,048 MB. Both need the owner's approval (risk 1). T19 removes the log line.
-    - Run on 2026-11-12 after pull request 36 deployed the line. From the logs: Normal P95 185 ms at depth 6 every time; Hard P95 1,078 ms at depth 10.1 on average (9 to 12); 12 Hard requests at once all 200, slowest 1,197 ms logged and 3.5 s on the client, depth 8.1. Every request met its limit, so no setting changed.
-    - The logs were read through the Log Analytics query API, where the plan 5 query's `traces` and `customDimensions` are `AppTraces` and `Properties`. The request and depth lines were paired by `OperationId`, so warm-ups and the batch at once are counted apart.
-    - `--time-scale` is 0.35: Hard on the owner's machine reaches 10.0 to 10.2 at 300 to 400 ms on the same positions, and Normal still reaches depth 6 at 175 ms.
+    - Run on 2026-11-12, after pull request 36 deployed the line, at 512 MB and 1 instance. From the logs: Normal P95 185 ms at depth 6 every time; Hard P95 1,078 ms at depth 10.1 on average (9 to 12); 12 Hard requests at once all 200, slowest 1,197 ms logged and 3.5 s on the client, depth 8.1. Every request finished within its limit plus 200 ms, so no setting changed.
+    - Read through the Log Analytics query API (`AppTraces` and `Properties`, plan 5). Time windows separate the levels; `OperationId` pairs each request with its depth. The script and all queries are in pull requests 36 and 37.
+    - `--time-scale` is 0.35: on the owner's machine Hard reaches 10.0 at 300 ms and 10.2 at 400 ms on the same positions, and Normal still reaches depth 6 at 175 ms.
     - For T19, revert all of it: the log call and the `ILogger<AutomatedPlayer>` parameter, the `appsettings.json` entry, the three temporary tests, and `.AddLogging()` in `FunctionServicesTests`. T19's grep also lists the `CompletedDepth` property in `ComputerMove` and `ComputerPlayer`, which are not log calls. `AppSettings_LogLevels_KeepOnlyTheRequestLineAtInformation` could then check that no other category is at Information.
-    - The script and the queries are in pull requests 36 and this task's follow-up pull request.
 
 - [ ] **T19 — Remove the temporary log line**
   - Refs: spec 6.4 item 6, plan 7.3 step 3
