@@ -250,11 +250,17 @@ Measured again in T15 on 2026-11-10, on 48 positions from random games at plies 
 | T15 code, Normal evaluation | 8.38 | 9.33 | 11.23 | 11.71 |
 | T15 code, Hard evaluation with quiescence | 7.94 | 8.65 | 10.50 | 10.88 |
 
-**Speed on Azure is not yet known.** The figures above do not transfer directly:
-* The live app's 0.98 s at depth 5 compares with 388 ms locally on .NET 6, so the old plan is about 2.5 times slower than this machine, including network time.
-* A 512 MB Flex instance has 0.25 of a core, which may be several times slower again.
+**Speed on Azure, measured in T18 on 2026-11-12.** On the live app, at 512 MB and 1 instance (checked during the run), with the 6 fixed positions of the T18 script (section 7.3, step 3). The times are the logged durations for each level's time window. The plan 5 query gives the count and P95. A second query pairs each request line with its depth line by `OperationId`, and gives the slowest time and the depths. Both are in T18's follow-up pull request.
 
-Section 7.3 measures it on the real app.
+| Level | Requests | P95 | Slowest | Depth finished: average (lowest–highest) |
+| --- | --- | --- | --- | --- |
+| Normal, 500 ms limit | 30 | 185 ms | 287 ms | 6 (6–6), the maximum depth every time |
+| Hard, 1,000 ms limit | 30 | 1,078 ms | 1,081 ms | 10.1 (9–12) |
+| Hard, 12 requests at once | 12 | 1,197 ms | 1,197 ms | 8.1 (6–10) |
+
+* Every request finished within its limit plus 200 ms (spec section 6.4, item 1).
+* On the same positions on the owner's machine, Hard reaches about the same depth in 300 to 400 ms (10.0 at 300 ms, 10.2 at 400 ms). So the Azure instance is about 3 times slower than this machine for the search.
+* The 12 requests at once all returned 200, in 1.6 to 3.5 s on the client. T7's waits of 25 to 36 seconds did not happen this time.
 
 ### 3.7 Search design
 
@@ -339,6 +345,8 @@ traces
 ```
 
 The difficulty is not logged by default. The check in section 7.3 runs each level in its own time window.
+
+The query above is for the Logs page of Application Insights. Through the Log Analytics query API, as T7 and T18 ran it, the table is `AppTraces` and the named values are in `Properties`, not `customDimensions`.
 
 ---
 
@@ -432,11 +440,11 @@ Run by hand, with results in the pull request.
 The `DraughtsGameFunctionSelfPlay` tool applies the rules in spec section 6.4, item 3. It is run by hand, not in CI, because of the time it takes.
 
 ```bash
-dotnet run --project DraughtsGameFunctionSelfPlay -c Release -- --games 200 --time-scale 0.1
+dotnet run --project DraughtsGameFunctionSelfPlay -c Release -- --games 200 --time-scale 0.35
 ```
 
 * 200 games for each pairing: Hard against Normal, and Normal against Easy. The margin of error near 80% is about 5.5 points either way, at 95% confidence.
-* `--time-scale` shortens the time limits to match the speed measured on Azure, in section 7.3. At the real limits, 200 games take about 2 hours. At 0.1, about 12 minutes. The value 0.1 is a placeholder until that measurement.
+* `--time-scale` shortens the time limits to match the speed measured on Azure, in section 7.3. At 0.35, Hard has 350 ms on the owner's machine. That is between the 300 ms and 400 ms results in section 3.6, which bracket the depth Hard reaches on Azure in 1,000 ms. At the real limits, 200 games take about 2 hours, so at 0.35 they take about 40 minutes. On the T18 positions, Normal still reaches its maximum depth of 6 at 0.35.
 * Each game opens with 4 random moves.
 * The first thing to try if Hard falls short is a lower Normal depth (decided with the owner). After that, a small margin in Normal's choice.
 

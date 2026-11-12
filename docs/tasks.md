@@ -321,7 +321,7 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - Checked locally with `func start`: the web app's requests at each level returned 200, and a bad `Search` setting stopped the real worker at start-up, which closes the T16 caveat.
     - Evidence and reviews: pull request 35.
 
-- [ ] **T18 — Measure the search on the live app (manual)**
+- [x] **T18 — Measure the search on the live app (manual)**
   - Refs: spec 3 goal 5, spec 6.4 items 1, 6, plan 3.6, plan 5, plan 7.3 steps 3–4, plan 7.4, risks 1, 2
   - Depends on: T17
   - Done when:
@@ -332,11 +332,10 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
     - 12 requests at once are sent again, and the result is recorded.
   - Verify: the query in plan section 5, for each level's time window, in the pull request
   - Notes: If a limit is not met, the first choices are a lower time limit or 2,048 MB. Both need the owner's approval (risk 1). T19 removes the log line.
-    - Checkpoint, 2026-11-12. Done: the temporary line `GetNextMove {Difficulty} finished depth {CompletedDepth}` in `AutomatedPlayer`, with its category at Information in `appsettings.json`, and tests. The throwaway script is in this task's first pull request.
-    - Next: the owner merges the first pull request, which deploys the line, and signs in with `az login`. Claude runs the script against the live app, and reads the times with the plan 5 query and the depths with the query below, for each level's time window. A follow-up pull request records them, updates plan 3.6 and 7.4, and ticks this task.
-    - Depth query: `traces | where isnotempty(customDimensions.CompletedDepth) | extend Difficulty = tostring(customDimensions.Difficulty), CompletedDepth = toint(customDimensions.CompletedDepth) | summarize Requests = count(), AvgDepth = avg(CompletedDepth), MinDepth = min(CompletedDepth), MaxDepth = max(CompletedDepth) by Difficulty`
+    - Run on 2026-11-12, after pull request 36 deployed the line, at 512 MB and 1 instance. From the logs: Normal P95 185 ms at depth 6 every time; Hard P95 1,078 ms at depth 10.1 on average (9 to 12); 12 Hard requests at once all 200, slowest 1,197 ms logged and 3.5 s on the client, depth 8.1. Every request finished within its limit plus 200 ms, so no setting changed.
+    - Read through the Log Analytics query API (`AppTraces` and `Properties`, plan 5). Time windows separate the levels; `OperationId` pairs each request with its depth. The script and all queries are in pull requests 36 and 37.
+    - `--time-scale` is 0.35: on the owner's machine Hard reaches 10.0 at 300 ms and 10.2 at 400 ms on the same positions, and Normal still reaches depth 6 at 175 ms.
     - For T19, revert all of it: the log call and the `ILogger<AutomatedPlayer>` parameter, the `appsettings.json` entry, the three temporary tests, and `.AddLogging()` in `FunctionServicesTests`. T19's grep also lists the `CompletedDepth` property in `ComputerMove` and `ComputerPlayer`, which are not log calls. `AppSettings_LogLevels_KeepOnlyTheRequestLineAtInformation` could then check that no other category is at Information.
-    - The script reads the app's URL from the `API` environment variable, so the URL is not written to a file or the output.
 
 - [ ] **T19 — Remove the temporary log line**
   - Refs: spec 6.4 item 6, plan 7.3 step 3
