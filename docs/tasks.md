@@ -396,7 +396,7 @@ Goal: each level is measurably stronger than the one below it, and the definitio
     - The 200-game self-play command is the one T21 ran; only the 2-game form was run here. GitHub renders the README on the branch.
     - Evidence and reviews: pull request 42.
 
-- [ ] **T22 — Check the definition of done**
+- [x] **T22 — Check the definition of done**
   - Refs: spec 9
   - Depends on: T9, T19, T21, T23
   - Done when:
@@ -406,6 +406,9 @@ Goal: each level is measurably stronger than the one below it, and the definitio
     - The speed evidence from T18 still applies to the final code, or the check has been repeated.
   - Verify: the standard test command; then the list above, in the pull request
   - Notes: When this task is ticked, suggest running `/retrospective`.
+    - Checked on 2026-11-13. Every spec 9 item and worked example has its evidence in pull request 43. Example 9 is tested in the move generator (plan test 11), which GetPotentialMoves uses, not through the endpoint.
+    - Azure, read-only: 7 resources in UK South and the action group global; .NET 10 isolated on Flex Consumption, 512 MB, at most 1 instance; both budgets and the stop chain in place; the old group gone.
+    - Cost this month for the group: £0.0021 (storage £0.002, and £0.0001 for 3 manual runs of the Logic App in T6 and T8). T18's speed evidence still applies: since its deploy, only T19's removal of the log line and a comment changed the app code.
 
 ---
 
