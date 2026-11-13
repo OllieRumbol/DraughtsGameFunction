@@ -396,7 +396,7 @@ Goal: each level is measurably stronger than the one below it, and the definitio
     - The 200-game self-play command is the one T21 ran; only the 2-game form was run here. GitHub renders the README on the branch.
     - Evidence and reviews: pull request 42.
 
-- [ ] **T22 — Check the definition of done**
+- [x] **T22 — Check the definition of done**
   - Refs: spec 9
   - Depends on: T9, T19, T21, T23
   - Done when:
