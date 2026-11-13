@@ -15,6 +15,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DraughtsGameFunction\DraughtsGameFunction.csproj" />
     <ProjectReference Include="..\DraughtsGameFunctionService\DraughtsGameFunctionService.csproj" />
+    <ProjectReference Include="..\DraughtsGameFunctionSelfPlay\DraughtsGameFunctionSelfPlay.csproj" />
   </ItemGroup>
 
 </Project>
