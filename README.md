@@ -52,15 +52,16 @@ You also need [Azure Functions Core Tools](https://learn.microsoft.com/azure/azu
    }
    ```
 
-2. Start the app:
+2. Start the app from its own folder. Run from the repository root, the Functions tools look for the build output in the wrong folder.
 
    ```bash
-   dotnet run --project DraughtsGameFunction
+   cd DraughtsGameFunction
+   dotnet run
    ```
 
 3. Send a request to `http://localhost:7071/api/GetPotentialMoves` or `http://localhost:7071/api/GetNextMove`.
 
-The HTTP functions work without a storage emulator. Without one, the host logs warnings that it cannot reach storage.
+The HTTP functions work without a storage emulator.
 
 ## Self-play
 
