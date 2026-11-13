@@ -378,9 +378,9 @@ Goal: each level is measurably stronger than the one below it, and the definitio
     - The owner has played each level, and is happy with how each one feels.
   - Verify: the command in plan section 7.4, with the `--time-scale` from T18; the scores go in the pull request
   - Notes: A change to Normal's depth is decided with the owner (plan 7.4). Repeat the speed check in T18 if a time limit changes, or if the new evaluation adds a feature that costs more than one pass over the board.
-    - The owner confirmed on 2026-11-13 that a move in the self-play draw rules is one player's turn (plan 3.7), so the 50-move draw is 25 turns each.
+    - The owner confirmed on 2026-11-13 that a move in the self-play draw rules is one player's turn (plan 3.7), so the 50-move draw is 25 turns each. Spec 6.4 item 3 now says so.
     - Checkpoint, 2026-11-13. Done: the plan 7.4 run at `--time-scale 0.35` met both targets with the first values (Hard 96.2% against Normal, Normal 100% against Easy), so no value, depth or time limit changed, and the T18 speed check still applies. Plan 3.5 and 7.4 and the code comment record the values as final.
-    - Next: the owner plays each level on the live site and says whether each one feels right. If not, the change is decided with the owner (Normal's depth first, plan 7.4), and the run is repeated. Then this task is ticked.
+    - Next: the owner plays each level on the live site and says whether each one feels right. If not, the change is decided with the owner (Normal's depth first, plan 7.4), the run is repeated, and plan 3.5, the plan 7.4 result and the `PositionalEvaluator` comment are updated to match. Then this task is ticked.
 
 - [ ] **T22 — Check the definition of done**
   - Refs: spec 9
