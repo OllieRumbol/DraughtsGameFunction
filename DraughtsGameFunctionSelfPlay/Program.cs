@@ -1,3 +1,4 @@
+using System.Globalization;
 using DraughtsGameFunctionModels.Enums;
 using DraughtsGameFunctionSelfPlay;
 using DraughtsGameFunctionService.Engine;
@@ -5,6 +6,11 @@ using DraughtsGameFunctionService.Instance;
 using Microsoft.Extensions.Options;
 
 // Plays the levels against each other (spec section 6.4, item 3, and plan section 7.4). Run by hand, not in CI.
+
+// Numbers print as they are typed on the command line, whatever the machine's settings.
+CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+
 var (options, error) = SelfPlayOptions.Parse(args);
 if (options is null)
 {

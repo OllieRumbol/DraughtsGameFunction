@@ -155,6 +155,7 @@ public class SelfPlayTests
     [DataRow("--games", "many", DisplayName = "Games not a number")]
     [DataRow("--time-scale", "0", DisplayName = "Time scale 0")]
     [DataRow("--time-scale", "-1", DisplayName = "Negative time scale")]
+    [DataRow("--time-scale", "11", DisplayName = "Time scale above 10")]
     [DataRow("--time-scale", "fast", DisplayName = "Time scale not a number")]
     [DataRow("--depth", "6", DisplayName = "Unknown option")]
     public void Parse_BadOption_ReturnsError(string name, string value)
@@ -193,6 +194,111 @@ public class SelfPlayTests
         Assert.AreEqual(175, settings.NormalTimeLimitMs);
         Assert.AreEqual(350, settings.HardTimeLimitMs);
     }
+
+    // Spec section 2.1, item 6: when the mover is left with no moves, the other player wins. Player 1's man has two
+    // steps, and on either square two of player 2's kings block it, because a man cannot capture a king.
+    [TestMethod]
+    public void Play_MoverLeftWithNoMoves_OtherPlayerWins()
+    {
+        // Arrange
+        var start = Create((2, 3, Board.Player1Man), (0, 1, Board.Player2King), (0, 3, Board.Player2King), (0, 5, Board.Player2King));
+
+        // Act
+        var result = SelfPlayGame.Play(start, CaptureIfPossible, CaptureIfPossible, new Random(1), openingMoves: 0);
+
+        // Assert
+        Assert.AreEqual(GameOutcome.Player2Wins, result.Outcome, result.Reason);
+        Assert.AreEqual("Player 1 cannot move.", result.Reason);
+        Assert.AreEqual(1, result.Moves);
+    }
+
+    // Spec section 2.1, item 6: when neither player can move, the game is a draw. This is test 20's tie position with
+    // the board turned round, so player 1 moves: either of its two moves fills (2,5) and blocks every piece.
+    [TestMethod]
+    public void Play_NeitherPlayerCanMove_IsADraw()
+    {
+        // Arrange
+        var start = Create(
+            (0, 1, Board.Player2King), (0, 3, Board.Player2King), (0, 5, Board.Player2King), (0, 7, Board.Player2King),
+            (1, 0, Board.Player1Man), (1, 2, Board.Player1Man), (1, 4, Board.Player1Man), (1, 6, Board.Player1Man),
+            (2, 1, Board.Player1Man), (2, 3, Board.Player1Man), (2, 7, Board.Player1Man),
+            (3, 4, Board.Player1Man), (3, 6, Board.Player1Man));
+
+        // Act
+        var result = SelfPlayGame.Play(start, CaptureIfPossible, CaptureIfPossible, new Random(1), openingMoves: 0);
+
+        // Assert
+        Assert.AreEqual(GameOutcome.Draw, result.Outcome, result.Reason);
+        Assert.AreEqual("Neither player can move.", result.Reason);
+        Assert.AreEqual(1, result.Moves);
+    }
+
+    // Spec section 6.4, item 3: a game is a draw after a set number of moves in all. A lower number than 200 lets
+    // the test reach it before the 50-move rule.
+    [TestMethod]
+    public void Play_MovesForDrawReached_IsADraw()
+    {
+        // Arrange
+        var start = Create((7, 0, Board.Player1King), (0, 7, Board.Player2King));
+
+        // Act
+        var result = SelfPlayGame.Play(start, NeverCapture, NeverCapture, new Random(1), openingMoves: 0, movesForDraw: 10);
+
+        // Assert
+        Assert.AreEqual(GameOutcome.Draw, result.Outcome);
+        Assert.AreEqual(10, result.Moves);
+        Assert.AreEqual("10 moves in all.", result.Reason);
+    }
+
+    // Plan section 7.4: each game opens with 4 random moves, so the players are first asked at move 5, with player 1
+    // to move, and two different seeds give different positions at that point.
+    [TestMethod]
+    public void Play_DefaultOpening_FourRandomMovesBeforeThePlayers()
+    {
+        // Arrange
+        var start = Board.FromRows(StartingRows());
+        var calls = new List<(int[] Board, int Player)>();
+        var otherCalls = new List<(int[] Board, int Player)>();
+
+        // Act
+        var result = SelfPlayGame.Play(start, Snapshot(calls), Snapshot(calls), new Random(11));
+        SelfPlayGame.Play(start, Snapshot(otherCalls), Snapshot(otherCalls), new Random(12));
+
+        // Assert
+        Assert.HasCount(result.Moves - SelfPlayGame.OpeningMoves, calls);
+        Assert.AreEqual(1, calls[0].Player);
+        CollectionAssert.AreNotEqual(start, calls[0].Board, "The opening moves should change the board.");
+        CollectionAssert.AreNotEqual(otherCalls[0].Board, calls[0].Board, "Different seeds should give different openings.");
+    }
+
+    // Spec section 6.4, item 3: a win scores 1 and a draw 0.5, for the level that made them, whichever side it played.
+    // Player 1 wins every game on the first board, so each level wins the game it plays as player 1. Every game on the
+    // second board is a draw.
+    [TestMethod]
+    public void Run_KnownOutcomes_CreditsTheLevelThatEarnedThem()
+    {
+        // Arrange
+        var player1WinsAtOnce = Create((4, 3, Board.Player1King), (3, 2, Board.Player2Man));
+        var drawn = Create((7, 0, Board.Player1King), (0, 7, Board.Player2King));
+
+        // Act
+        var wins = Pairing.Run("Stronger", CaptureIfPossible, "Weaker", CaptureIfPossible, player1WinsAtOnce, games: 2, new Random(1), openingMoves: 0);
+        var draws = Pairing.Run("Stronger", NeverCapture, "Weaker", NeverCapture, drawn, games: 2, new Random(1), openingMoves: 0);
+
+        // Assert
+        Assert.AreEqual((1, 0, 1), (wins.StrongerWins, wins.Draws, wins.WeakerWins));
+        Assert.AreEqual(1.0, wins.StrongerScore);
+        Assert.AreEqual((0, 2, 0), (draws.StrongerWins, draws.Draws, draws.WeakerWins));
+        Assert.AreEqual(1.0, draws.StrongerScore);
+        Assert.AreEqual(50.0, draws.StrongerPercentage);
+    }
+
+    private static ChooseMove Snapshot(List<(int[] Board, int Player)> calls) => (board, player) =>
+    {
+        calls.Add(((int[])board.Clone(), player));
+
+        return Generate(board, player)[0];
+    };
 
     private static ChooseMove FixedDepth(IEvaluator evaluator, int depth)
     {

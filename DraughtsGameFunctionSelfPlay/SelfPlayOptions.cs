@@ -9,10 +9,13 @@ namespace DraughtsGameFunctionSelfPlay;
 /// </summary>
 public sealed record SelfPlayOptions(int Games, double TimeScale)
 {
-    public const string Usage = "Usage: --games <an even number, 200 by default> --time-scale <above 0, 1 by default>";
+    public const string Usage = "Usage: --games <an even number, 200 by default> --time-scale <above 0 and up to 10, 1 by default>";
 
     private const int DefaultGames = 200;
     private const double DefaultTimeScale = 1.0;
+
+    // At 10, the Hard limit is 10,000 ms, the most the app's own settings allow.
+    private const double LargestTimeScale = 10;
 
     /// <summary>The options, or an error message. Exactly one of the two results is set.</summary>
     public static (SelfPlayOptions? Options, string? Error) Parse(string[] args)
@@ -38,9 +41,9 @@ public sealed record SelfPlayOptions(int Games, double TimeScale)
                     break;
                 case "--time-scale":
                     if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out timeScale)
-                        || !double.IsFinite(timeScale) || timeScale <= 0)
+                        || !double.IsFinite(timeScale) || timeScale <= 0 || timeScale > LargestTimeScale)
                     {
-                        return (null, "--time-scale must be a number above 0, for example 0.35.");
+                        return (null, "--time-scale must be a number above 0 and up to 10, for example 0.35.");
                     }
 
                     break;

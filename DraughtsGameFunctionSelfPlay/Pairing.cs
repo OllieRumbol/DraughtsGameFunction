@@ -8,11 +8,12 @@ public static class Pairing
 {
     /// <summary>
     /// Plays <paramref name="games"/> games from <paramref name="startBoard"/>, which must be an even number.
-    /// <paramref name="reportGame"/> receives one line for each game, for progress.
+    /// <paramref name="reportGame"/> receives one line for each game, for progress. Tests can set fewer opening moves.
     /// </summary>
     public static PairingResult Run(
         string strongerName, ChooseMove stronger, string weakerName, ChooseMove weaker,
-        int[] startBoard, int games, Random random, Action<string>? reportGame = null)
+        int[] startBoard, int games, Random random, Action<string>? reportGame = null,
+        int openingMoves = SelfPlayGame.OpeningMoves)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(games, 2);
         if (games % 2 != 0)
@@ -28,8 +29,8 @@ public static class Pairing
         {
             var strongerIsPlayer1 = game % 2 == 1;
             var result = strongerIsPlayer1
-                ? SelfPlayGame.Play(startBoard, stronger, weaker, random)
-                : SelfPlayGame.Play(startBoard, weaker, stronger, random);
+                ? SelfPlayGame.Play(startBoard, stronger, weaker, random, openingMoves)
+                : SelfPlayGame.Play(startBoard, weaker, stronger, random, openingMoves);
 
             var strongerWon = result.Outcome == (strongerIsPlayer1 ? GameOutcome.Player1Wins : GameOutcome.Player2Wins);
             var weakerWon = result.Outcome == (strongerIsPlayer1 ? GameOutcome.Player2Wins : GameOutcome.Player1Wins);
