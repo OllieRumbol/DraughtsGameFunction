@@ -383,14 +383,18 @@ Goal: each level is measurably stronger than the one below it, and the definitio
     - The owner found Hard a little easier than the old one. The new Hard beat the old Hard (V3 at depth 5) 92% over 100 games, and the owner kept Hard as it is. Easy and Normal feel right (2026-11-13).
     - Evidence and reviews: pull request 41.
 
-- [ ] **T23 — Add the README**
+- [x] **T23 — Add the README**
   - Refs: spec 1, spec 2.3, spec 5, spec 5.3, spec 6.1.1 items 5–8, plan 2, plan 7.4, plan 8.4
   - Depends on: T21
   - Done when:
     - `README.md` at the root says what the project is, links to the game, lists the two endpoints and the three levels, and says how to build, test, run locally, run the self-play tool and deploy.
     - It links to `docs/spec.md`, `docs/plan.md` and `docs/tasks.md`, and holds no Azure resource address, id or setting value.
   - Verify: the standard test command; then each command in the README runs as written on a clean copy, and GitHub shows the README on the pull request
-  - Notes: Added on 2026-11-13 at the owner's request, before T22 so that the final check includes it. `LICENSE`, `SECURITY.md` and `CONTRIBUTING.md` are left out: the owner decides on a licence separately.
+  - Notes:
+    - Added on 2026-11-13 at the owner's request, before T22 so that the final check includes it. `LICENSE`, `SECURITY.md` and `CONTRIBUTING.md` are left out: the owner decides on a licence separately.
+    - Every README command was run on a clean copy. Run from the repository root, `dotnet run --project DraughtsGameFunction` fails, so the README starts the app from its own folder.
+    - The 200-game self-play command is the one T21 ran; only the 2-game form was run here. GitHub renders the README on the branch.
+    - Evidence and reviews: pull request 42.
 
 - [ ] **T22 — Check the definition of done**
   - Refs: spec 9
