@@ -384,7 +384,7 @@ Goal: each level is measurably stronger than the one below it, and the definitio
     - Evidence and reviews: pull request 41.
 
 - [ ] **T23 — Add the README**
-  - Refs: spec 1, spec 2.3, spec 5, spec 6.1.1 items 5–7, plan 2, plan 7.4, plan 8.4
+  - Refs: spec 1, spec 2.3, spec 5, spec 5.3, spec 6.1.1 items 5–8, plan 2, plan 7.4, plan 8.4
   - Depends on: T21
   - Done when:
     - `README.md` at the root says what the project is, links to the game, lists the two endpoints and the three levels, and says how to build, test, run locally, run the self-play tool and deploy.

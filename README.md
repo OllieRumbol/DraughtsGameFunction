@@ -14,17 +14,19 @@ Both endpoints take a `POST` with a JSON body. `Board` is 8 rows of 8 values, en
 | Endpoint | Request | Response |
 | --- | --- | --- |
 | `/api/GetNextMove` | `{ "Difficulty": "hard", "Board": [...] }` | The computer's move, as player 2 |
-| `/api/GetPotentialMoves` | `{ "Board": [...], "TipFor": 1 }` | The squares that player can move to |
+| `/api/GetPotentialMoves` | `{ "Board": [...], "TipFor": 1 }` | The squares that the `TipFor` player (1 or 2) can move to |
 
-`Difficulty` is `easy`, `normal` or `hard`, in any letter case. The web app still sends the older `Version` field (1, 2 or 3), which is used when `Difficulty` is missing. [Spec section 5](docs/spec.md#5-external-interfaces) has the full contract.
+`Difficulty` is `easy`, `normal` or `hard`, in any letter case. The web app still sends the older `Version` field (1, 2 or 3), which is used only when `Difficulty` is missing. It also sends `Depth` and `Player`, which have no effect. [Spec section 5](docs/spec.md#5-external-interfaces) has the full contract.
+
+Both endpoints are anonymous. The live app accepts browser requests from the web app's origin only (CORS).
 
 ## Levels
 
 | Level | How it plays |
 | --- | --- |
 | Easy | A random capture when there is one, otherwise a random move. No search. |
-| Normal | Searches up to 6 moves ahead, for at most 500 ms, and counts pieces only. |
-| Hard | Searches as deep as it can in 1,000 ms, and also judges the position. |
+| Normal | Searches up to 6 moves ahead, for at most 500 ms, and counts material only: a man is 1 and a king is 2. |
+| Hard | Searches as deep as it can in 1,000 ms, and scores where the pieces stand as well as material. |
 
 The depth and time limits are app settings with defaults in code ([plan section 2](docs/plan.md#2-configuration)).
 
@@ -52,16 +54,20 @@ You also need [Azure Functions Core Tools](https://learn.microsoft.com/azure/azu
    }
    ```
 
-2. Start the app from its own folder. Run from the repository root, the Functions tools look for the build output in the wrong folder.
+2. Start the app from its own folder. If you run `dotnet run` from the repository root, it starts the Functions host in the wrong folder and fails.
 
    ```bash
    cd DraughtsGameFunction
    dotnet run
    ```
 
-3. Send a request to `http://localhost:7071/api/GetPotentialMoves` or `http://localhost:7071/api/GetNextMove`.
+3. In another terminal, ask for the computer's move from the starting board:
 
-The HTTP functions work without a storage emulator.
+   ```bash
+   curl -X POST http://localhost:7071/api/GetNextMove -H "Content-Type: application/json" -d '{"Difficulty":"normal","Board":[[0,2,0,2,0,2,0,2],[2,0,2,0,2,0,2,0],[0,2,0,2,0,2,0,2],[5,0,5,0,5,0,5,0],[0,5,0,5,0,5,0,5],[1,0,1,0,1,0,1,0],[0,1,0,1,0,1,0,1],[1,0,1,0,1,0,1,0]]}'
+   ```
+
+The host needs the `AzureWebJobsStorage` setting, but the HTTP functions do not use storage, so no storage emulator needs to run.
 
 ## Self-play
 
@@ -71,7 +77,7 @@ The HTTP functions work without a storage emulator.
 dotnet run --project DraughtsGameFunctionSelfPlay -c Release -- --games 200 --time-scale 0.35
 ```
 
-`--time-scale 0.35` shortens the time limits to match the speed of the live app. A full run takes about 25 minutes. For a quick check, use `--games 2`.
+`--time-scale 0.35` shortens the time limits so that the owner's machine searches as deep as the live app. On that machine, a full run took about 25 minutes. On another machine, both can differ. For a quick check, use `--games 2`.
 
 ## Deployment
 
