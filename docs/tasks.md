@@ -369,7 +369,7 @@ Goal: each level is measurably stronger than the one below it, and the definitio
     - `SelfPlayGame.Play` takes the number of opening moves (4 by default) and the move limit (200 by default), so tests can keep a built position and reach the limit. The tool always uses the defaults. The runs are not seeded, so each run plays different games.
     - For T21: the tool scales the code defaults in `SearchOptions`, not the app's settings, so a tuned value must change the code default. The Verify run (2 games each, time scale 0.1) took 14 s, and the stronger level won all 4 games. Evidence and reviews: pull request 40.
 
-- [ ] **T21 — Tune the levels and meet the strength targets**
+- [x] **T21 — Tune the levels and meet the strength targets**
   - Refs: spec 2.3, spec 3 goal 6, spec 6.1.5 items 5, 6, spec 6.4 item 3, plan 3.5, plan 7.4, risk 8
   - Depends on: T18, T20
   - Done when:
@@ -377,7 +377,11 @@ Goal: each level is measurably stronger than the one below it, and the definitio
     - Hard scores at least 80% against Normal, and Normal at least 90% against Easy, over 200 games for each pairing.
     - The owner has played each level, and is happy with how each one feels.
   - Verify: the command in plan section 7.4, with the `--time-scale` from T18; the scores go in the pull request
-  - Notes: A change to Normal's depth is decided with the owner (plan 7.4). Repeat the speed check in T18 if a time limit changes, or if the new evaluation adds a feature that costs more than one pass over the board.
+  - Notes:
+    - Self-play at `--time-scale 0.35` met both targets with the first values (Hard 96.2% against Normal, Normal 100% against Easy), so no value, depth or time limit changed, and the T18 speed check still applies.
+    - The owner confirmed on 2026-11-13 that a move in the draw rules is one player's turn. Spec 6.4 item 3 says so.
+    - The owner found Hard a little easier than the old one. The new Hard beat the old Hard (V3 at depth 5) 92% over 100 games, and the owner kept Hard as it is. Easy and Normal feel right (2026-11-13).
+    - Evidence and reviews: pull request 41.
 
 - [ ] **T22 — Check the definition of done**
   - Refs: spec 9

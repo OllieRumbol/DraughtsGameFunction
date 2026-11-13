@@ -387,7 +387,7 @@ Items 1 and 2 apply from stage 1. Item 3 applies once defect 2 (section 4.1) is 
    Rules for these games:
    * A win scores 1. A draw scores 0.5 to each side.
    * The game ends by the rule in section 2.1, item 6.
-   * So that a game always ends, a game is also a draw after 50 moves in a row with no capture, or after 200 moves in total. This rule applies to these test games only, not to the API or the web app.
+   * So that a game always ends, a game is also a draw after 50 moves in a row with no capture, or after 200 moves in total. A move is one player's turn, so 50 moves is 25 turns for each side. The owner confirmed this on 2026-11-13. This rule applies to these test games only, not to the API or the web app.
    * Each game starts with a few random opening moves, so the games are not all the same.
    * Each side moves first in half of the games.
 4. **Location.** Every Azure resource that has a region SHALL be in the UK South region. Budgets and the action group are global, because Azure offers no UK South option for them. They hold alert settings, not game data. The owner approved this on 2026-11-05.

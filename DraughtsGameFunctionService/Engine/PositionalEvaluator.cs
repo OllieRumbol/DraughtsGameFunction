@@ -5,8 +5,8 @@ using System;
 namespace DraughtsGameFunctionService.Engine;
 
 /// <summary>
-/// The Hard evaluation, with the first values in plan section 3.5 (spec section 6.1.5, item 6). T21 tunes the values
-/// with the self-play tool. Each piece scores:
+/// The Hard evaluation, with the values in plan section 3.5 (spec section 6.1.5, item 6). Self-play in T21 met both
+/// strength targets with these first values, so they are final (plan section 7.4). Each piece scores:
 /// <list type="bullet">
 /// <item>100 for a man and 200 for a king. A king is worth more than in standard draughts, because men cannot capture
 /// kings (spec section 2.1, item 4).</item>
