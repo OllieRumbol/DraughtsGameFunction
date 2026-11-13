@@ -11,6 +11,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DraughtsGameFunctionService
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DraughtsGameFunctionTests", "DraughtsGameFunctionTests\DraughtsGameFunctionTests.csproj", "{142A27E7-3371-4882-95BC-F56B6A719F72}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DraughtsGameFunctionSelfPlay", "DraughtsGameFunctionSelfPlay\DraughtsGameFunctionSelfPlay.csproj", "{EDFECC4D-9CC9-402E-9E53-A47072CF155A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{142A27E7-3371-4882-95BC-F56B6A719F72}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{142A27E7-3371-4882-95BC-F56B6A719F72}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{142A27E7-3371-4882-95BC-F56B6A719F72}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EDFECC4D-9CC9-402E-9E53-A47072CF155A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EDFECC4D-9CC9-402E-9E53-A47072CF155A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EDFECC4D-9CC9-402E-9E53-A47072CF155A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EDFECC4D-9CC9-402E-9E53-A47072CF155A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

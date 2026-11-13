@@ -354,7 +354,7 @@ Goal: one shared search replaces the V2 and V3 code, the API accepts `Difficulty
 
 Goal: each level is measurably stronger than the one below it, and the definition of done is met.
 
-- [ ] **T20 — Add the self-play tool**
+- [x] **T20 — Add the self-play tool**
   - Refs: spec 6.1.5 item 9, spec 6.4 item 3, plan 3.1, plan 7.4, test 24
   - Depends on: T16
   - Done when:
@@ -364,6 +364,10 @@ Goal: each level is measurably stronger than the one below it, and the definitio
     - Test 24 passes.
   - Verify: the standard test command; then `dotnet run --project DraughtsGameFunctionSelfPlay -c Release -- --games 2 --time-scale 0.1` finishes and prints the scores
   - Notes:
+    - The tool plays each level through the same `ComputerPlayer` as the API, so it measures the real levels, including a new search for each move. Tests use fixed-depth searches with no randomness (spec 6.1.5 item 9).
+    - Player 1 always moves first, and the levels swap sides each game, so `--games` must be even. A move is one player's turn, as in plan 3.7, so the 50-move draw is 25 turns each. Both draw rules count every move, including the 4 random opening moves. Every move is checked against the legal moves.
+    - `SelfPlayGame.Play` takes the number of opening moves (4 by default) and the move limit (200 by default), so tests can keep a built position and reach the limit. The tool always uses the defaults. The runs are not seeded, so each run plays different games.
+    - For T21: the tool scales the code defaults in `SearchOptions`, not the app's settings, so a tuned value must change the code default. The Verify run (2 games each, time scale 0.1) took 14 s, and the stronger level won all 4 games. Evidence and reviews: pull request 40.
 
 - [ ] **T21 — Tune the levels and meet the strength targets**
   - Refs: spec 2.3, spec 3 goal 6, spec 6.1.5 items 5, 6, spec 6.4 item 3, plan 3.5, plan 7.4, risk 8
