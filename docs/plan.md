@@ -266,7 +266,7 @@ Measured again in T15 on 2026-11-10, on 48 positions from random games at plies 
 
 `GameTreeSearch` is a negamax alpha-beta search, as the prototype tested it. A move is one ply, and a capture chain is one move.
 
-1. **End of game first.** At each node, check both players (spec section 2.1, item 6). Neither can move scores 0. A win scores `Win - ply` and a loss scores `-Win + ply`, with `Win` at 100,000, so a faster win scores higher. Evaluation scores stay well below `Win`.
+1. **End of game first.** At each node, check the player to move (spec section 2.1, item 6). If that player has no legal move, the node is a loss for them: it scores `-Win + ply`, and the parent sees `Win - ply`, with `Win` at 100,000, so a faster win and a slower loss score higher. There is no tie score. Evaluation scores stay well below `Win`.
 2. **Depth 0.** Return `Evaluate`, or run quiescence if `UsesQuiescence` is true.
 3. **Table lookup.** See below.
 4. **Move order.** The table's best move first, then more captures before fewer, then generator order.
@@ -405,7 +405,7 @@ The query above is for the Logs page of Application Insights. Through the Log An
 | 17 | Depth is capped at 6 for Normal, with no cap for Hard, read from `CompletedDepth` | 6.1.5 items 5, 6 | Normal is too strong |
 | 18 | One legal move returns with no search | 6.2 #15 | Wasted time |
 | 19 | A forced win in 1 is chosen over a forced win in 3. The slowest loss is chosen when every move loses. | 6.1.5 item 7 | Search misses or delays a win |
-| 20 | Both end-of-game rules at a leaf, including a move that leaves the mover with no moves | 2.1 item 6, 6.5 #9 | AI disagrees with the screen |
+| 20 | The end-of-game rule at a leaf: the player to move with no legal move loses, also when neither player can move; a move that leaves the mover with no moves does not end the game at once | 2.1 item 6, 6.5 #9 | AI disagrees with the screen |
 | 21 | Examples 10 to 14: `Difficulty` letter case, numbers rejected, both fields, neither field. Also `{"difficulty":3}` gets the `Difficulty` message, `"easy,hard"` and `" hard "` are rejected, `Version: "abc"` with a valid `Difficulty` is rejected, and `Version: "2"` and `TipFor: "1"` are rejected. | 6.2, 6.1.1 items 2, 7, 8 | Contract errors |
 | 22 | Example 7: `Depth: 50` has no effect | 6.2 #7, defect 3 | Client controls the cost |
 | 23 | Easy always takes a capture when one exists | 6.1.5 item 4 | Easy loses its one rule |

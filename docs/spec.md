@@ -29,11 +29,11 @@ The owner built the game in memory of their grandad, who died in 2020. The game 
 3. Men move and capture diagonally forward only. Kings move and capture one square diagonally in any direction. There are no "flying" kings. During a capture chain, a king may land back on the square where the chain started, because it has left that square. The owner confirmed this on 2026-11-04.
 4. A man can capture only men. It cannot capture a king. A king can capture both men and kings.
 5. A man that reaches the far row becomes a king.
-6. **The end of the game.** After every move, the web app checks both players:
-   * If neither player can move, the game is a tie.
-   * If only one player can move, that player wins.
+6. **The end of the game.** After every turn, the player who moves next is checked. If that player has no legal move, they lose, and the other player wins. It does not matter whether the other player could move.
 
-   A player with no pieces left has no moves, so losing every piece is covered by this rule. So is a move that leaves the moving player's own pieces with no moves: that player loses at once. A player can also give up in the web app. There is no other draw rule.
+   A player with no pieces has no moves, so losing every piece is covered by this rule. A move that leaves the moving player's own pieces with no moves does not end the game at once: that player loses at their next turn, unless the other player's move gives them a move. A player can also give up in the web app. There are no ties.
+
+   The owner changed this rule on 2026-11-14. It was "neither player can move: a tie; only one player can move: that player wins".
 
 ### 2.2 Board encoding
 
@@ -325,7 +325,7 @@ Items 1 and 2 apply from stage 1. Item 3 applies once defect 2 (section 4.1) is 
    * From the starting board, 20 Normal requests SHALL return at least 2 different moves (section 6.2, example 16).
    * WHEN player 2 has only one legal move, THE SYSTEM SHALL return it at once, without searching.
    * WHEN the search finds a forced win, THE SYSTEM SHALL stop searching and play it. It SHALL prefer the fastest win. WHEN every move loses, it SHALL prefer the slowest loss.
-   * Wins, losses and ties in the search SHALL follow the end-of-game rule in section 2.1, item 6.
+   * Wins and losses in the search SHALL follow the end-of-game rule in section 2.1, item 6. A position where the player to move has no legal move is a loss for that player.
 8. THE SYSTEM SHALL never search past the time limit for the difficulty, whatever the position or the request.
 9. For testing, the search SHALL also be able to run to a fixed depth with no time limit and no randomness, so that the same position always gives the same move. It SHALL also be able to play as player 1, for the computer-against-computer games in section 6.4. Neither option is offered through the API.
 
@@ -415,7 +415,7 @@ Items 1 and 2 apply from stage 1. Item 3 applies once defect 2 (section 4.1) is 
 6. A capture chain where the man reaches the far row (section 6.1.3, item 7).
 7. A king capture chain that loops, or that ends on its starting square (section 6.1.3, items 5 and 8, and section 6.2, examples 19 and 20).
 8. Several requests at the same time. Requests share no state, so each one is independent. They share one instance (section 6.4, item 5), and each search still stops at its time limit.
-9. A move that leaves player 2's own pieces with no moves. The search treats it as a loss (section 2.1, item 6).
+9. A move that leaves player 2's own pieces with no moves. The game goes on, and player 2 loses at its next turn unless player 1's move gives it a move. The search scores it that way (section 2.1, item 6).
 
 ---
 

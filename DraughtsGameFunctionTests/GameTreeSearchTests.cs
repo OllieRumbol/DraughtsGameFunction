@@ -140,7 +140,8 @@ public class GameTreeSearchTests
         Assert.AreEqual(Win - 1, result.Score);
     }
 
-    // Test 19: when every move loses, the slowest loss is chosen. It is not first in generator order.
+    // Test 19: when every move loses, the slowest loss is chosen. The loss in 2 comes first in generator order.
+    // Turned round, two moves lose in 4, so the test checks the distance of the chosen move, not the move.
     [TestMethod]
     [DataRow(1, DisplayName = "Player 1")]
     [DataRow(2, DisplayName = "Player 2, on the board turned round")]
@@ -159,14 +160,17 @@ public class GameTreeSearchTests
 
         // Assert
         Assert.AreEqual(-Win + 2, PlainMinimax.ScoreOfMove(board, player, lossInTwo, 5, Evaluator), "The first move should lose in 2.");
-        Assert.AreEqual(Describe(lossInFour), Describe(result.Move));
+        Assert.AreEqual(-Win + 4, PlainMinimax.ScoreOfMove(board, player, lossInFour, 5, Evaluator), "The other move should lose in 4.");
+        Assert.AreEqual(-Win + 4, PlainMinimax.ScoreOfMove(board, player, result.Move, 5, Evaluator), "The chosen move should lose in 4.");
         Assert.AreEqual(-Win + 4, result.Score);
     }
 
-    // Test 20 and spec section 6.5, item 9: a move that leaves the mover with no moves loses at once. The man has two
-    // moves, to (6,1) and (6,3), and kings block it on both, because a man cannot capture a king.
+    // Test 20 and spec section 6.5, item 9: a move that leaves the mover with no moves does not lose at once. The man
+    // has two moves, to (6,1) and (6,3), and kings block it on both, because a man cannot capture a king. Player 1
+    // then has a reply that leaves player 2 with no move, such as taking the man, so player 2 loses at its next turn:
+    // a loss in 2.
     [TestMethod]
-    public void Search_EveryMoveLeavesMoverWithNoMoves_ScoresLossAtOnce()
+    public void Search_EveryMoveLeavesMoverWithNoMoves_LosesAtItsNextTurn()
     {
         // Arrange
         var board = Create(
@@ -177,30 +181,52 @@ public class GameTreeSearchTests
 
         // Assert
         Assert.HasCount(2, Generate(board, player: 2));
-        Assert.AreEqual(-Win + 1, result.Score);
+        Assert.AreEqual(-Win + 2, result.Score);
     }
 
-    // Test 20: the search avoids a move that leaves its own pieces with no moves. That move comes first in generator
-    // order, and at depth 1 both moves keep the same material.
+    // Test 20: at depth 1, a move that leaves the mover with no moves is not scored as a loss, because player 1
+    // moves next and can move. The search uses the evaluation: one man against three kings.
     [TestMethod]
-    public void Search_OneMoveLeavesMoverWithNoMoves_ChoosesTheOther()
+    public void Search_MoveLeavesMoverWithNoMovesAtDepthOne_UsesEvaluation()
     {
         // Arrange
-        var board = Create((5, 2, Board.Player2Man), (7, 0, Board.Player1King), (7, 2, Board.Player1King));
+        var board = Create(
+            (5, 2, Board.Player2Man), (7, 0, Board.Player1King), (7, 2, Board.Player1King), (7, 4, Board.Player1King));
 
         // Act
         var result = NewSearch().Search(board, player: 2, new SearchLimits(MaxDepth: 1, TimeLimit: null));
 
         // Assert
-        Assert.AreEqual(Describe(Move((5, 2), (6, 3))), Describe(result.Move));
+        Assert.AreEqual(-5, result.Score);
     }
 
-    // Test 20: when neither player can move after a move, the game is a tie and scores 0. Player 2 has two moves,
-    // from (4,1) and from (4,3), and both fill (5,2). After either one, every piece on both sides is blocked.
-    // Before it, a king can capture through (5,2). Player 2 has 9 men against 4 kings, so the material evaluation
-    // would give player 2 one point, and 0 shows the tie rule was used.
+    // Test 20: the search prefers a move that leaves the other player with no move. Player 1's man on (1,2) can only
+    // step to (0,3). Player 2's king on (1,4) can step there and block it, and player 2's man on (2,3) blocks the
+    // landing square of every capture. That move is not first in generator order.
     [TestMethod]
-    public void Search_MoveLeavesNeitherPlayerAbleToMove_ScoresTie()
+    [DataRow(1, DisplayName = "Depth 1")]
+    [DataRow(3, DisplayName = "Depth 3")]
+    public void Search_MoveLeavesOtherPlayerWithNoMoves_ChoosesThatMove(int depth)
+    {
+        // Arrange
+        var board = Create(
+            (1, 2, Board.Player1Man), (0, 1, Board.Player2King), (1, 4, Board.Player2King), (2, 3, Board.Player2Man));
+
+        // Act
+        var result = NewSearch().Search(board, player: 2, new SearchLimits(MaxDepth: depth, TimeLimit: null));
+
+        // Assert
+        Assert.AreNotEqual(Describe(Move((1, 4), (0, 3))), Describe(Generate(board, player: 2)[0]), "The move should not come first.");
+        Assert.AreEqual(Describe(Move((1, 4), (0, 3))), Describe(result.Move));
+        Assert.AreEqual(Win - 1, result.Score);
+    }
+
+    // Test 20: when neither player can move after a move, the player to move loses, so the mover wins. Player 2 has
+    // two moves, from (4,1) and from (4,3), and both fill (5,2). After either one, every piece on both sides is
+    // blocked. Before it, a king can capture through (5,2). Player 2 is one point ahead on material, so a win score
+    // shows the end-of-game rule was used, not the evaluation.
+    [TestMethod]
+    public void Search_MoveLeavesNeitherPlayerAbleToMove_MoverWins()
     {
         // Arrange
         var board = Create(
@@ -217,7 +243,7 @@ public class GameTreeSearchTests
         Assert.HasCount(2, Generate(board, player: 2));
         Assert.AreEqual(Describe(Move((4, 1), (5, 2))), Describe(result.Move));
         Assert.AreEqual(1, result.CompletedDepth);
-        Assert.AreEqual(0, result.Score);
+        Assert.AreEqual(Win - 1, result.Score);
     }
 
     [TestMethod]
