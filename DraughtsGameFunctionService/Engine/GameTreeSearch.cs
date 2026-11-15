@@ -30,8 +30,6 @@ public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvid
     /// </summary>
     public const int MaxPly = 64;
 
-    private const int TieScore = 0;
-
     // Wider than any score, so the first move searched always sets the best score.
     private const int Infinity = WinScore + 1;
 
@@ -200,22 +198,9 @@ public sealed class GameTreeSearch(IEvaluator evaluator, TimeProvider timeProvid
             return 0;
         }
 
-        // The end of the game is checked first, for both players, as the web app checks it after every move
-        // (spec section 2.1, item 6). This also catches a move that left its own player with no moves.
-        var playerCanMove = MoveGenerator.HasMove(board, player);
-        var opponentCanMove = MoveGenerator.HasMove(board, 3 - player);
-
-        if (!playerCanMove && !opponentCanMove)
-        {
-            return TieScore;
-        }
-
-        if (!opponentCanMove)
-        {
-            return WinScore - ply;
-        }
-
-        if (!playerCanMove)
+        // The end of the game is checked first (spec section 2.1, item 6): the player to move with no legal move
+        // loses, whether or not the other player could move. There are no ties. The parent sees this as a win.
+        if (!MoveGenerator.HasMove(board, player))
         {
             return -WinScore + ply;
         }

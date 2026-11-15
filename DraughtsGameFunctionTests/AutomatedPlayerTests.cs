@@ -28,14 +28,15 @@ public class AutomatedPlayerTests
     // The time limits for these tests, short so the tests stay quick.
     private const int TestTimeLimitMs = 100;
 
-    // Player 2 has two moves. The man on (4,1) can step to (5,0), or take the man on (5,2) and land on (6,3).
-    // There, kings block both of its moves, and a man cannot capture a king, so player 2 has no moves left and loses
-    // at once (spec section 2.1, item 6). Easy always takes the capture. Normal and Hard never do.
+    // Player 2 has one capture and two quiet moves. The man on (3,6) can take the man on (4,5), but player 1's king
+    // on (6,3) then takes it and the man on (3,4), so the capture loses two men for one. Player 1's man on (5,6) blocks
+    // the only other way to take (4,5). Easy always takes the capture. Normal and Hard never do, once their search
+    // finishes depth 2: at depth 1 the capture looks like a free man.
     private static readonly string CaptureThatLosesBoard = BoardJson(
-        (4, 1, Board.Player2Man), (5, 2, Board.Player1Man), (7, 2, Board.Player1King), (7, 4, Board.Player1King));
+        (3, 6, Board.Player2Man), (3, 4, Board.Player2Man), (2, 7, Board.Player2Man),
+        (4, 5, Board.Player1Man), (5, 6, Board.Player1Man), (6, 3, Board.Player1King));
 
-    private const string CaptureThatLoses = "(4,1)->(6,3) x(5,2)";
-    private const string QuietMove = "(4,1)->(5,0)";
+    private const string CaptureThatLoses = "(3,6)->(5,4) x(4,5)";
 
     // Test 1: the web app's exact request (spec section 5.1). It still works in stage 2.
     [TestMethod]
@@ -122,32 +123,32 @@ public class AutomatedPlayerTests
     // Test 21 and spec section 6.2, example 13: when both are sent, Difficulty is used. Easy takes the capture, and
     // the Hard control does not.
     [TestMethod]
-    [DataRow("easy", 3, CaptureThatLoses, DisplayName = "Difficulty easy, Version 3")]
-    [DataRow("hard", 1, QuietMove, DisplayName = "Difficulty hard, Version 1")]
-    [DataRow("hard", 9, QuietMove, DisplayName = "Difficulty hard, Version 9 is not checked")]
-    public async Task Run_DifficultyAndVersion_UsesDifficulty(string difficulty, int version, string expectedMove)
+    [DataRow("easy", 3, true, DisplayName = "Difficulty easy, Version 3")]
+    [DataRow("hard", 1, false, DisplayName = "Difficulty hard, Version 1")]
+    [DataRow("hard", 9, false, DisplayName = "Difficulty hard, Version 9 is not checked")]
+    public async Task Run_DifficultyAndVersion_UsesDifficulty(string difficulty, int version, bool takesCapture)
     {
         var body = $$"""{ "Difficulty": "{{difficulty}}", "Version": {{version}}, "Board": {{CaptureThatLosesBoard}} }""";
 
         var response = await PostAsync(body);
 
         Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
-        Assert.AreEqual(expectedMove, MoveText(response));
+        Assert.AreEqual(takesCapture, MoveText(response) == CaptureThatLoses, MoveText(response));
     }
 
     // Spec section 6.1.1, item 8: with no Difficulty, Version gives the level, as the web app sends it today.
     [TestMethod]
-    [DataRow(1, CaptureThatLoses, DisplayName = "Version 1 is Easy")]
-    [DataRow(2, QuietMove, DisplayName = "Version 2 is Normal")]
-    [DataRow(3, QuietMove, DisplayName = "Version 3 is Hard")]
-    public async Task Run_VersionWithoutDifficulty_PlaysThatLevel(int version, string expectedMove)
+    [DataRow(1, true, DisplayName = "Version 1 is Easy")]
+    [DataRow(2, false, DisplayName = "Version 2 is Normal")]
+    [DataRow(3, false, DisplayName = "Version 3 is Hard")]
+    public async Task Run_VersionWithoutDifficulty_PlaysThatLevel(int version, bool takesCapture)
     {
         var body = $$"""{ "Version": {{version}}, "Board": {{CaptureThatLosesBoard}} }""";
 
         var response = await PostAsync(body);
 
         Assert.AreEqual(StatusCodes.Status200OK, response.StatusCode);
-        Assert.AreEqual(expectedMove, MoveText(response));
+        Assert.AreEqual(takesCapture, MoveText(response) == CaptureThatLoses, MoveText(response));
     }
 
     // Test 21 and spec section 6.2, example 14. A Difficulty of null counts as missing.

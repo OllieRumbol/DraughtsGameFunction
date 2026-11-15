@@ -195,10 +195,11 @@ public class SelfPlayTests
         Assert.AreEqual(350, settings.HardTimeLimitMs);
     }
 
-    // Spec section 2.1, item 6: when the mover is left with no moves, the other player wins. Player 1's man has two
-    // steps, and on either square two of player 2's kings block it, because a man cannot capture a king.
+    // Spec section 2.1, item 6: a move that leaves the mover with no moves does not end the game. The mover loses at
+    // its next turn. Player 1's man has two steps, and on either square two of player 2's kings block it, because a
+    // man cannot capture a king. Player 2 can still move, so it moves once, and then player 1 cannot move.
     [TestMethod]
-    public void Play_MoverLeftWithNoMoves_OtherPlayerWins()
+    public void Play_MoverLeftWithNoMoves_LosesAtItsNextTurn()
     {
         // Arrange
         var start = Create((2, 3, Board.Player1Man), (0, 1, Board.Player2King), (0, 3, Board.Player2King), (0, 5, Board.Player2King));
@@ -209,13 +210,14 @@ public class SelfPlayTests
         // Assert
         Assert.AreEqual(GameOutcome.Player2Wins, result.Outcome, result.Reason);
         Assert.AreEqual("Player 1 cannot move.", result.Reason);
-        Assert.AreEqual(1, result.Moves);
+        Assert.AreEqual(2, result.Moves);
     }
 
-    // Spec section 2.1, item 6: when neither player can move, the game is a draw. This is test 20's tie position with
-    // the board turned round, so player 1 moves: either of its two moves fills (2,5) and blocks every piece.
+    // Spec section 2.1, item 6: when neither player can move, the player who moves next loses. This is test 20's
+    // position with the board turned round, so player 1 moves: either of its two moves fills (2,5) and blocks every
+    // piece. Player 2 moves next, so player 1 wins.
     [TestMethod]
-    public void Play_NeitherPlayerCanMove_IsADraw()
+    public void Play_NeitherPlayerCanMove_PlayerToMoveLoses()
     {
         // Arrange
         var start = Create(
@@ -228,8 +230,8 @@ public class SelfPlayTests
         var result = SelfPlayGame.Play(start, CaptureIfPossible, CaptureIfPossible, new Random(1), openingMoves: 0);
 
         // Assert
-        Assert.AreEqual(GameOutcome.Draw, result.Outcome, result.Reason);
-        Assert.AreEqual("Neither player can move.", result.Reason);
+        Assert.AreEqual(GameOutcome.Player1Wins, result.Outcome, result.Reason);
+        Assert.AreEqual("Player 2 cannot move.", result.Reason);
         Assert.AreEqual(1, result.Moves);
     }
 

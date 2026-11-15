@@ -117,23 +117,11 @@ internal static class PlainMinimax
         return best;
     }
 
-    // The end-of-game scores in plan section 3.7, item 1, or null while both players can move.
+    // The end-of-game score in plan section 3.7, item 1: a loss for the player to move when they have no legal move,
+    // or null while they can move.
     private static int? EndOfGameScore(int[] board, int player, int ply)
     {
-        var playerCanMove = MoveGenerator.HasMove(board, player);
-        var opponentCanMove = MoveGenerator.HasMove(board, 3 - player);
-
-        if (!playerCanMove && !opponentCanMove)
-        {
-            return 0;
-        }
-
-        if (!opponentCanMove)
-        {
-            return GameTreeSearch.WinScore - ply;
-        }
-
-        if (!playerCanMove)
+        if (!MoveGenerator.HasMove(board, player))
         {
             return -GameTreeSearch.WinScore + ply;
         }

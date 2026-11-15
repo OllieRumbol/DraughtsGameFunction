@@ -60,7 +60,7 @@ public static class SelfPlayGame
             MoveGenerator.Apply(board, move);
             movesWithoutCapture = move.Captured == 0 ? movesWithoutCapture + 1 : 0;
 
-            var result = ResultAfterMove(board, moveNumber, movesWithoutCapture, movesForDraw);
+            var result = ResultAfterMove(board, nextPlayer: 3 - player, moveNumber, movesWithoutCapture, movesForDraw);
             if (result is not null)
             {
                 return result;
@@ -70,25 +70,16 @@ public static class SelfPlayGame
         }
     }
 
-    // Spec section 2.1, item 6, after every move, then the draw rules for these games only.
-    private static GameResult? ResultAfterMove(int[] board, int moveNumber, int movesWithoutCapture, int movesForDraw)
+    // Spec section 2.1, item 6, after every move: the player who moves next loses if they have no legal move, whether
+    // or not the other player could move. Then the draw rules for these games only.
+    private static GameResult? ResultAfterMove(
+        int[] board, int nextPlayer, int moveNumber, int movesWithoutCapture, int movesForDraw)
     {
-        var player1CanMove = MoveGenerator.HasMove(board, 1);
-        var player2CanMove = MoveGenerator.HasMove(board, 2);
-
-        if (!player1CanMove && !player2CanMove)
+        if (!MoveGenerator.HasMove(board, nextPlayer))
         {
-            return new GameResult(GameOutcome.Draw, moveNumber, "Neither player can move.");
-        }
+            var outcome = nextPlayer == 1 ? GameOutcome.Player2Wins : GameOutcome.Player1Wins;
 
-        if (!player2CanMove)
-        {
-            return new GameResult(GameOutcome.Player1Wins, moveNumber, "Player 2 cannot move.");
-        }
-
-        if (!player1CanMove)
-        {
-            return new GameResult(GameOutcome.Player2Wins, moveNumber, "Player 1 cannot move.");
+            return new GameResult(outcome, moveNumber, $"Player {nextPlayer} cannot move.");
         }
 
         if (movesWithoutCapture >= MovesWithoutCaptureForDraw)
